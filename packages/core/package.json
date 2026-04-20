@@ -1,0 +1,23 @@
+{
+  "name": "@relay/core",
+  "version": "0.1.0",
+  "description": "Shared types, context-package builder, and Supabase client for Relay",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@huggingface/transformers": "^4.0.1",
+    "@supabase/supabase-js": "^2.45.0",
+    "archiver": "^7.0.0"
+  },
+  "devDependencies": {
+    "@types/archiver": "^6.0.0",
+    "@types/node": "^25.5.2",
+    "typescript": "^5.5.0"
+  }
+}

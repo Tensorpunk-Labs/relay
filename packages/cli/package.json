@@ -1,0 +1,27 @@
+{
+  "name": "@relay/cli",
+  "version": "0.1.0",
+  "description": "relay-cli — Context flow for human-agent teams",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "relay": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@relay/core": "workspace:*",
+    "@relay/orchestrator": "workspace:*",
+    "@relay/storage-sqlite": "workspace:*",
+    "chalk": "^5.3.0",
+    "commander": "^12.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.2",
+    "typescript": "^5.5.0"
+  }
+}

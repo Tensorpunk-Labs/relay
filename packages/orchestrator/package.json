@@ -1,0 +1,20 @@
+{
+  "name": "@relay/orchestrator",
+  "version": "0.1.0",
+  "description": "Relay Master Orchestrator — graph traversal + RAG synthesis",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@relay/core": "workspace:*",
+    "@anthropic-ai/sdk": "^0.30.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0"
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "name": "@relay/mcp",
+  "version": "0.1.0",
+  "description": "Relay MCP server — exposes context flow tools to Claude and other agents",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "@relay/core": "workspace:*",
+    "@relay/orchestrator": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.2",
+    "typescript": "^5.5.0"
+  }
+}

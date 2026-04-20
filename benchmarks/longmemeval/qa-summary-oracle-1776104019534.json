@@ -1,0 +1,48 @@
+{
+  "dataset": "oracle",
+  "total_questions": 500,
+  "correct": 461,
+  "accuracy": 92.2,
+  "per_type": {
+    "knowledge-update": {
+      "correct": 73,
+      "total": 78,
+      "accuracy": 93.6
+    },
+    "multi-session": {
+      "correct": 124,
+      "total": 133,
+      "accuracy": 93.2
+    },
+    "single-session-assistant": {
+      "correct": 55,
+      "total": 56,
+      "accuracy": 98.2
+    },
+    "single-session-preference": {
+      "correct": 19,
+      "total": 30,
+      "accuracy": 63.3
+    },
+    "single-session-user": {
+      "correct": 67,
+      "total": 70,
+      "accuracy": 95.7
+    },
+    "temporal-reasoning": {
+      "correct": 123,
+      "total": 133,
+      "accuracy": 92.5
+    }
+  },
+  "token_usage": {
+    "gen_input": 699565,
+    "gen_output": 63958,
+    "judge_input": 188100,
+    "judge_output": 500
+  },
+  "estimated_cost_usd": 15.7656,
+  "time_seconds": 8802.8,
+  "timestamp": "2026-04-13T18:13:39.537Z",
+  "pipeline": "hybrid_bm25_semantic_rrf_rerank -> claude-opus-4-6 (gen, type-aware) -> gpt-4o (judge)"
+}

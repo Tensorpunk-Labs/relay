@@ -1,0 +1,23 @@
+{
+  "dataset": "oracle",
+  "total_questions": 10,
+  "correct": 7,
+  "accuracy": 70,
+  "per_type": {
+    "temporal-reasoning": {
+      "correct": 7,
+      "total": 10,
+      "accuracy": 70
+    }
+  },
+  "token_usage": {
+    "gen_input": 63239,
+    "gen_output": 559,
+    "judge_input": 1387,
+    "judge_output": 10
+  },
+  "estimated_cost_usd": 0.1673,
+  "time_seconds": 152.1,
+  "timestamp": "2026-04-10T18:35:20.294Z",
+  "pipeline": "hybrid_bm25_semantic_rrf_rerank -> gpt-4o (gen) -> gpt-4o (judge)"
+}

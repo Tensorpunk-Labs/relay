@@ -1,0 +1,20 @@
+{
+  "name": "@relay/storage-sqlite",
+  "version": "0.1.0",
+  "description": "SQLite implementation of the RelayStorage contract. Used by `relay sync` as a local mirror and by `relay restore --to sqlite:///...` for portable offline backups.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@relay/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.2",
+    "typescript": "^5.5.0"
+  }
+}

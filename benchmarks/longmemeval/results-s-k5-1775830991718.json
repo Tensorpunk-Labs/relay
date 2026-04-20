@@ -1,0 +1,174 @@
+{
+  "opts": {
+    "dataset": "s",
+    "limit": 10,
+    "topK": 5
+  },
+  "metrics": {
+    "recallAnyCount": 10,
+    "recallAllCount": 10,
+    "total": 10
+  },
+  "results": [
+    {
+      "question_id": "e47becba",
+      "question_type": "single-session-user",
+      "answer_session_ids": [
+        "answer_280352e9"
+      ],
+      "retrieved_session_ids": [
+        "answer_280352e9",
+        "f6859b48_2",
+        "ultrachat_214101",
+        "02bd2b90_3",
+        "7045db85_1"
+      ],
+      "recall_any_at_k": true,
+      "recall_all_at_k": true
+    },
+    {
+      "question_id": "118b2229",
+      "question_type": "single-session-user",
+      "answer_session_ids": [
+        "answer_40a90d51"
+      ],
+      "retrieved_session_ids": [
+        "answer_40a90d51",
+        "sharegpt_M3x4mZx_0",
+        "d600c646",
+        "7d8b5834_1",
+        "5dce60dd"
+      ],
+      "recall_any_at_k": true,
+      "recall_all_at_k": true
+    },
+    {
+      "question_id": "51a45a95",
+      "question_type": "single-session-user",
+      "answer_session_ids": [
+        "answer_d61669c7"
+      ],
+      "retrieved_session_ids": [
+        "answer_d61669c7",
+        "217debf7",
+        "98c198fb",
+        "07ba9acd_2",
+        "sharegpt_3vxz2Zr_0"
+      ],
+      "recall_any_at_k": true,
+      "recall_all_at_k": true
+    },
+    {
+      "question_id": "58bf7951",
+      "question_type": "single-session-user",
+      "answer_session_ids": [
+        "answer_355c48bb"
+      ],
+      "retrieved_session_ids": [
+        "answer_355c48bb",
+        "ultrachat_268434",
+        "ultrachat_304942",
+        "sharegpt_M84blrA_53",
+        "ultrachat_155546"
+      ],
+      "recall_any_at_k": true,
+      "recall_all_at_k": true
+    },
+    {
+      "question_id": "1e043500",
+      "question_type": "single-session-user",
+      "answer_session_ids": [
+        "answer_3e012175"
+      ],
+      "retrieved_session_ids": [
+        "answer_3e012175",
+        "01bd9def",
+        "8020d945_2",
+        "sharegpt_Clr6oyu_0",
+        "ultrachat_271928"
+      ],
+      "recall_any_at_k": true,
+      "recall_all_at_k": true
+    },
+    {
+      "question_id": "c5e8278d",
+      "question_type": "single-session-user",
+      "answer_session_ids": [
+        "answer_f6168136"
+      ],
+      "retrieved_session_ids": [
+        "answer_f6168136",
+        "d777e7da_1",
+        "f58317c6",
+        "aaf71ce2_2",
+        "sharegpt_WPGrlAK_0"
+      ],
+      "recall_any_at_k": true,
+      "recall_all_at_k": true
+    },
+    {
+      "question_id": "6ade9755",
+      "question_type": "single-session-user",
+      "answer_session_ids": [
+        "answer_9398da02"
+      ],
+      "retrieved_session_ids": [
+        "answer_9398da02",
+        "7c5ab02a_2",
+        "ultrachat_270925",
+        "ultrachat_462",
+        "a200b713_4"
+      ],
+      "recall_any_at_k": true,
+      "recall_all_at_k": true
+    },
+    {
+      "question_id": "6f9b354f",
+      "question_type": "single-session-user",
+      "answer_session_ids": [
+        "answer_feb5200f"
+      ],
+      "retrieved_session_ids": [
+        "answer_feb5200f",
+        "ultrachat_549317",
+        "0c0f2449_2",
+        "a79f1a04_1",
+        "40643340_2"
+      ],
+      "recall_any_at_k": true,
+      "recall_all_at_k": true
+    },
+    {
+      "question_id": "58ef2f1c",
+      "question_type": "single-session-user",
+      "answer_session_ids": [
+        "answer_59547700"
+      ],
+      "retrieved_session_ids": [
+        "answer_59547700",
+        "e6ab6a7b_2",
+        "ultrachat_5212",
+        "ultrachat_246324",
+        "ultrachat_477344"
+      ],
+      "recall_any_at_k": true,
+      "recall_all_at_k": true
+    },
+    {
+      "question_id": "f8c5f88b",
+      "question_type": "single-session-user",
+      "answer_session_ids": [
+        "answer_c3567066"
+      ],
+      "retrieved_session_ids": [
+        "answer_c3567066",
+        "15232887_1",
+        "68ace657_1",
+        "91880423",
+        "54e9197a"
+      ],
+      "recall_any_at_k": true,
+      "recall_all_at_k": true
+    }
+  ]
+}

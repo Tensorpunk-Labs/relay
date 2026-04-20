@@ -1,0 +1,1469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Relay CLI Reference — Context Flow Protocol Commands</title>
+  <meta name="description" content="Complete CLI reference for Relay: deposit, pull, orient, orchestrate, facts, session, daily, projects, and config commands with all flags and examples.">
+  <meta name="keywords" content="Relay CLI, relay deposit, relay pull, relay orchestrate, relay orient, relay facts, context flow protocol, Tensorpunk Labs">
+  <link rel="canonical" href="https://relaymemory.com/cli">
+
+  <meta property="og:title" content="Relay CLI Reference">
+  <meta property="og:description" content="Complete command reference for the Relay context flow protocol CLI. All commands, flags, and examples.">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://relaymemory.com/cli">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Relay CLI Reference">
+  <meta name="twitter:description" content="All relay commands documented: deposit, pull, orient, orchestrate, facts, session, daily, projects, config.">
+
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%2300ddff'/><text x='50%25' y='56%25' text-anchor='middle' dominant-baseline='middle' font-family='JetBrains Mono,monospace' font-weight='700' font-size='20' fill='%23000'>R</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Jost:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "TechArticle",
+    "headline": "Relay CLI Reference — Context Flow Protocol Commands",
+    "description": "Complete reference documentation for all Relay CLI commands including deposit, pull, orient, orchestrate, facts, session, daily, projects, and config.",
+    "url": "https://relaymemory.com/cli",
+    "author": {
+      "@type": "Organization",
+      "name": "Tensorpunk Labs",
+      "url": "https://tensorpunklabs.com"
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "Tensorpunk Labs",
+      "url": "https://tensorpunklabs.com"
+    },
+    "about": {
+      "@type": "SoftwareApplication",
+      "name": "Relay",
+      "applicationCategory": "DeveloperApplication"
+    },
+    "teaches": [
+      "relay deposit — package and upload context",
+      "relay pull — retrieve context packages",
+      "relay orient — wake-up bundle for session start",
+      "relay orchestrate — global project digest",
+      "relay facts — mutable facts whiteboard",
+      "relay session — session lifecycle management",
+      "relay daily — morning and evening workflow",
+      "relay projects — project management",
+      "relay status — project overview",
+      "relay config — configuration management"
+    ]
+  }
+  </script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-primary: #0a0c10;
+      --bg-secondary: #131418;
+      --bg-card: #181a1f;
+      --border: #1e2028;
+      --text-primary: #ededed;
+      --text-secondary: #8a8d98;
+      --text-tertiary: #555860;
+      --cyan: #00ddff;
+      --cyan-dim: #0099bb;
+      --lime: #d4f500;
+      --neu-raised:
+        10px 10px 24px 0 rgba(2, 3, 5, 0.92),
+        -6px -6px 18px 0 rgba(30, 32, 40, 0.28);
+      --neu-inset:
+        inset 4px 4px 10px 0 rgba(2, 3, 5, 0.8),
+        inset -3px -3px 8px 0 rgba(30, 32, 40, 0.3);
+    }
+
+    html, body {
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: 'Inter', -apple-system, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    #bg-canvas { position: fixed; inset: 0; z-index: 0; display: block; }
+    .ambient {
+      position: fixed; inset: 0; z-index: 1; pointer-events: none;
+      background:
+        radial-gradient(ellipse 60% 50% at 25% 20%, rgba(0,221,255,0.08), transparent 60%),
+        radial-gradient(ellipse 50% 40% at 78% 82%, rgba(212,245,0,0.05), transparent 60%),
+        radial-gradient(ellipse 120% 100% at 50% 50%, transparent 40%, rgba(10,12,16,0.55) 100%);
+      mix-blend-mode: screen;
+    }
+    .grain {
+      position: fixed; inset: -50%; z-index: 2; pointer-events: none; opacity: 0.06;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='matrix' values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.6 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+    }
+
+    /* Top bar */
+    .topbar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 20;
+      padding: 20px 28px;
+      display: flex; align-items: center; justify-content: space-between;
+      pointer-events: none;
+      background: linear-gradient(180deg, rgba(10,12,16,0.85) 0%, transparent 100%);
+    }
+    .mark {
+      display: inline-flex; align-items: center; gap: 10px;
+      pointer-events: auto; text-decoration: none;
+    }
+    .mark-icon {
+      font-family: 'Futura', 'Jost', sans-serif;
+      font-weight: 700; font-size: 22px; color: var(--text-primary);
+    }
+    .mark-text {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px; font-weight: 600; color: var(--text-secondary);
+      letter-spacing: 2px; text-transform: uppercase;
+    }
+    .mark-text b { color: var(--text-primary); font-weight: 700; }
+
+    /* Nav */
+    .topnav {
+      display: flex; align-items: center; gap: 4px;
+      pointer-events: auto;
+    }
+    .topnav a {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; font-weight: 600;
+      color: var(--text-tertiary);
+      letter-spacing: 1.5px; text-transform: uppercase;
+      text-decoration: none;
+      padding: 7px 12px; border-radius: 8px;
+      transition: color 0.15s, background 0.15s;
+    }
+    .topnav a:hover { color: var(--cyan); background: rgba(0,221,255,0.06); }
+    .topnav a.active {
+      color: var(--cyan);
+      background: rgba(0,221,255,0.08);
+      border: 1px solid rgba(0,221,255,0.18);
+    }
+
+    /* Layout */
+    .page-wrap {
+      position: relative; z-index: 10;
+      max-width: 900px; margin: 0 auto;
+      padding: 110px 24px 80px;
+    }
+
+    /* Page header */
+    .page-header {
+      margin-bottom: 52px;
+      text-align: center;
+    }
+    .page-eyebrow {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; font-weight: 600;
+      color: var(--cyan); letter-spacing: 4px;
+      text-transform: uppercase;
+      margin-bottom: 16px; opacity: 0.9;
+    }
+    .page-title {
+      font-family: 'Jost', 'Futura', sans-serif;
+      font-size: clamp(32px, 5vw, 54px);
+      font-weight: 800; letter-spacing: 0.02em;
+      line-height: 1.05;
+      background: linear-gradient(180deg, #ffffff 0%, #63676f 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 14px;
+    }
+    .page-lead {
+      font-size: 15px; color: var(--text-secondary);
+      line-height: 1.7; max-width: 600px; margin: 0 auto;
+    }
+
+    .divider {
+      width: 80px; height: 1px;
+      margin: 24px auto 36px;
+      background: linear-gradient(90deg, transparent, var(--cyan) 50%, transparent);
+      opacity: 0.6;
+    }
+
+    /* TOC */
+    .toc {
+      background: rgba(19,20,24,0.65);
+      backdrop-filter: blur(14px);
+      border: 1px solid rgba(255,255,255,0.04);
+      border-radius: 14px;
+      padding: 24px 28px;
+      box-shadow: var(--neu-raised);
+      margin-bottom: 40px;
+    }
+    .toc-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; font-weight: 700;
+      color: var(--text-tertiary); letter-spacing: 2.5px;
+      text-transform: uppercase; margin-bottom: 14px;
+    }
+    .toc-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 6px;
+    }
+    .toc-link {
+      display: flex; align-items: center; gap: 8px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px; color: var(--text-secondary);
+      text-decoration: none;
+      padding: 7px 10px; border-radius: 7px;
+      transition: color 0.12s, background 0.12s;
+    }
+    .toc-link:hover { color: var(--cyan); background: rgba(0,221,255,0.06); }
+    .toc-link .cmd-badge {
+      font-weight: 700; color: var(--cyan);
+    }
+
+    /* Command sections */
+    .cmd-section {
+      margin-bottom: 36px;
+    }
+    .cmd-card {
+      background: rgba(19,20,24,0.65);
+      backdrop-filter: blur(18px) saturate(160%);
+      border: 1px solid rgba(255,255,255,0.04);
+      border-radius: 18px;
+      padding: 36px 40px;
+      box-shadow: var(--neu-raised);
+      position: relative;
+    }
+    .cmd-card::after {
+      content: ""; position: absolute; inset: 0;
+      border-radius: 18px; padding: 1px; pointer-events: none;
+      background: linear-gradient(140deg, rgba(0,221,255,0.2), transparent 50%, rgba(212,245,0,0.06));
+      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor; mask-composite: exclude;
+      opacity: 0.5;
+    }
+
+    .cmd-header {
+      display: flex; align-items: flex-start;
+      justify-content: space-between; flex-wrap: wrap;
+      gap: 12px; margin-bottom: 6px;
+    }
+    .cmd-name {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 20px; font-weight: 700;
+      color: var(--cyan); letter-spacing: -0.5px;
+    }
+    .cmd-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; font-weight: 600;
+      color: var(--text-tertiary); letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 4px 10px; border-radius: 6px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.05);
+      align-self: flex-start;
+    }
+
+    .cmd-synopsis {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px; color: var(--text-tertiary);
+      margin-bottom: 16px;
+    }
+    .cmd-synopsis .cmd-part { color: var(--text-primary); }
+    .cmd-synopsis .flag-part { color: #f0c070; }
+    .cmd-synopsis .arg-part { color: var(--lime); }
+
+    .cmd-desc {
+      font-size: 14px; color: var(--text-secondary);
+      line-height: 1.7; margin-bottom: 24px;
+    }
+
+    /* Sub-commands */
+    .subcmds {
+      display: flex; flex-direction: column; gap: 24px;
+      margin-bottom: 24px;
+    }
+    .subcmd {
+      padding-left: 20px;
+      border-left: 2px solid rgba(0,221,255,0.15);
+    }
+    .subcmd-name {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 14px; font-weight: 700;
+      color: var(--text-primary); margin-bottom: 4px;
+    }
+    .subcmd-name .sub { color: var(--cyan); }
+    .subcmd-desc {
+      font-size: 13px; color: var(--text-secondary);
+      line-height: 1.6; margin-bottom: 10px;
+    }
+
+    /* Flags table */
+    .flags-table {
+      width: 100%; border-collapse: collapse;
+      margin: 14px 0;
+      font-size: 13px;
+    }
+    .flags-table th {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px; font-weight: 700;
+      color: var(--text-tertiary); letter-spacing: 2px;
+      text-transform: uppercase;
+      text-align: left; padding: 6px 10px 8px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .flags-table td {
+      padding: 8px 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.03);
+      vertical-align: top;
+    }
+    .flags-table tr:last-child td { border-bottom: none; }
+    .flags-table .flag-name {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px; color: #f0c070;
+      white-space: nowrap;
+    }
+    .flags-table .flag-desc {
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+    .flags-table .flag-default {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; color: var(--text-tertiary);
+      white-space: nowrap;
+    }
+
+    /* Code blocks */
+    .code-block {
+      background: rgba(8, 10, 14, 0.85);
+      border: 1px solid rgba(0,221,255,0.12);
+      border-radius: 10px;
+      padding: 14px 18px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12.5px;
+      line-height: 1.75;
+      overflow-x: auto;
+      margin: 10px 0;
+      box-shadow: inset 0 1px 8px rgba(0,0,0,0.4);
+    }
+    .code-block .comment { color: var(--text-tertiary); }
+    .code-block .cmd { color: var(--text-primary); }
+    .code-block .key { color: var(--cyan); }
+    .code-block .val { color: var(--lime); }
+    .code-block .str { color: #b5f5a0; }
+    .code-block .flag { color: #f0c070; }
+    .code-block .prompt { color: var(--text-tertiary); user-select: none; margin-right: 6px; }
+
+    /* Inline code */
+    code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      background: rgba(0,221,255,0.07);
+      color: var(--cyan);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    /* Examples label */
+    .examples-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px; font-weight: 700;
+      color: var(--text-tertiary); letter-spacing: 2.5px;
+      text-transform: uppercase; margin-bottom: 8px; margin-top: 20px;
+    }
+
+    /* Info box */
+    .info-box {
+      background: rgba(0,221,255,0.05);
+      border: 1px solid rgba(0,221,255,0.15);
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+      margin: 14px 0;
+    }
+    .info-box strong { color: var(--cyan); }
+
+    .lime-box {
+      background: rgba(212,245,0,0.04);
+      border: 1px solid rgba(212,245,0,0.15);
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+      margin: 14px 0;
+    }
+    .lime-box strong { color: var(--lime); }
+
+    /* Separator between sections */
+    .section-sep {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(0,221,255,0.15) 50%, transparent);
+      margin: 12px 0 36px;
+      opacity: 0.5;
+    }
+
+    /* Footer */
+    footer {
+      position: relative; z-index: 10;
+      max-width: 900px; margin: 0 auto;
+      padding: 32px 24px;
+      display: flex; justify-content: space-between;
+      align-items: center; flex-wrap: wrap; gap: 16px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; color: var(--text-tertiary);
+      letter-spacing: 1.5px; text-transform: uppercase;
+      border-top: 1px solid rgba(255,255,255,0.03);
+    }
+    footer a { color: var(--text-secondary); text-decoration: none; }
+    footer a:hover { color: var(--cyan); }
+
+    @media (max-width: 640px) {
+      .topbar { padding: 14px 16px; }
+      .topnav a { padding: 5px 8px; font-size: 10px; letter-spacing: 1px; }
+      .cmd-card { padding: 24px 20px; }
+      .page-wrap { padding: 100px 16px 60px; }
+      .flags-table { font-size: 12px; }
+      .flags-table .flag-default { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <canvas id="bg-canvas"></canvas>
+  <div class="ambient"></div>
+  <div class="grain"></div>
+
+  <!-- Top bar -->
+  <div class="topbar">
+    <a href="https://tensorpunklabs.com" target="_blank" class="mark">
+      <div class="mark-icon">&Oslash;</div>
+      <div class="mark-text"><b>Tensorpunk</b> &nbsp;Labs &nbsp;<span style="color:var(--cyan);">// RELAY</span></div>
+    </a>
+    <nav class="topnav">
+      <a href="/">Home</a>
+      <a href="/setup">Setup</a>
+      <a href="/cli" class="active">CLI</a>
+      <a href="/docs">Docs</a>
+      <a href="/dashboard">Dashboard</a>
+    </nav>
+  </div>
+
+  <!-- Page content -->
+  <div class="page-wrap">
+
+    <div class="page-header">
+      <div class="page-eyebrow">&lt;&lt; <span style="color:var(--text-tertiary);">//</span> command reference <span style="color:var(--text-tertiary);">//</span> &gt;&gt;</div>
+      <h1 class="page-title">Relay CLI Reference</h1>
+      <div class="divider"></div>
+      <p class="page-lead">
+        Every command, every flag, every example. Sourced directly from the implementation.
+      </p>
+    </div>
+
+    <!-- TOC -->
+    <div class="toc">
+      <div class="toc-label">Commands</div>
+      <div class="toc-grid">
+        <a class="toc-link" href="#deposit"><span class="cmd-badge">relay deposit</span></a>
+        <a class="toc-link" href="#pull"><span class="cmd-badge">relay pull</span></a>
+        <a class="toc-link" href="#orient"><span class="cmd-badge">relay orient</span></a>
+        <a class="toc-link" href="#orchestrate"><span class="cmd-badge">relay orchestrate</span></a>
+        <a class="toc-link" href="#facts"><span class="cmd-badge">relay facts</span></a>
+        <a class="toc-link" href="#session"><span class="cmd-badge">relay session</span></a>
+        <a class="toc-link" href="#status"><span class="cmd-badge">relay status</span></a>
+        <a class="toc-link" href="#daily"><span class="cmd-badge">relay daily</span></a>
+        <a class="toc-link" href="#projects"><span class="cmd-badge">relay projects</span></a>
+        <a class="toc-link" href="#backup"><span class="cmd-badge">relay backup</span></a>
+        <a class="toc-link" href="#config"><span class="cmd-badge">relay config</span></a>
+        <a class="toc-link" href="#coming-next"><span class="cmd-badge" style="color:var(--lime);">v0.2 →</span></a>
+      </div>
+    </div>
+
+    <!-- relay deposit -->
+    <div class="cmd-section" id="deposit">
+      <div class="cmd-card">
+        <div class="cmd-header">
+          <div class="cmd-name">relay deposit</div>
+          <div class="cmd-tag">Context Journal</div>
+        </div>
+        <div class="cmd-synopsis">
+          <span class="cmd-part">relay deposit</span>
+          <span class="flag-part"> [--title &lt;title&gt;]</span>
+          <span class="flag-part"> [--auto]</span>
+          <span class="flag-part"> [--handoff &lt;note&gt;]</span>
+          <span class="flag-part"> [--decisions ...]</span>
+          <span class="flag-part"> [--questions ...]</span>
+          <span class="flag-part"> [options]</span>
+        </div>
+        <p class="cmd-desc">
+          Package the current state of your work and upload it to the Context Core. A deposit is an immutable record in the context journal — it captures what happened, what was decided, what's still open, and what the next actor should know. Use <code>--auto</code> for git-state snapshots (fires from the stop hook); use explicit flags when the value is in the reasoning, not just the diff.
+        </p>
+
+        <table class="flags-table">
+          <thead>
+            <tr>
+              <th>Flag</th>
+              <th>Description</th>
+              <th>Default</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="flag-name">--title &lt;title&gt;</td>
+              <td class="flag-desc">Package title. Required for non-auto deposits.</td>
+              <td class="flag-default">Untitled deposit</td>
+            </tr>
+            <tr>
+              <td class="flag-name">--description &lt;desc&gt;</td>
+              <td class="flag-desc">Short description of what this package contains.</td>
+              <td class="flag-default">—</td>
+            </tr>
+            <tr>
+              <td class="flag-name">--decisions &lt;...&gt;</td>
+              <td class="flag-desc">Space-separated list of decisions made. Multiple values accepted.</td>
+              <td class="flag-default">—</td>
+            </tr>
+            <tr>
+              <td class="flag-name">--questions &lt;...&gt;</td>
+              <td class="flag-desc">Open questions that need resolution. Multiple values accepted.</td>
+              <td class="flag-default">—</td>
+            </tr>
+            <tr>
+              <td class="flag-name">--handoff &lt;note&gt;</td>
+              <td class="flag-desc">Handoff note for the next actor. Appears in orient bundles.</td>
+              <td class="flag-default">—</td>
+            </tr>
+            <tr>
+              <td class="flag-name">--files &lt;paths...&gt;</td>
+              <td class="flag-desc">Deliverable file paths to bundle into the package.</td>
+              <td class="flag-default">—</td>
+            </tr>
+            <tr>
+              <td class="flag-name">--status &lt;status&gt;</td>
+              <td class="flag-desc">Package status: <code>complete</code>, <code>in_progress</code>, or <code>pending_review</code>.</td>
+              <td class="flag-default">complete</td>
+            </tr>
+            <tr>
+              <td class="flag-name">--review &lt;type&gt;</td>
+              <td class="flag-desc">Review type: <code>human</code>, <code>agent</code>, or <code>none</code>.</td>
+              <td class="flag-default">none</td>
+            </tr>
+            <tr>
+              <td class="flag-name">--project &lt;id&gt;</td>
+              <td class="flag-desc">Target project ID. Overrides CWD-based project detection.</td>
+              <td class="flag-default">CWD-detected</td>
+            </tr>
+            <tr>
+              <td class="flag-name">--parent &lt;id&gt;</td>
+              <td class="flag-desc">Parent package ID for explicit lineage chaining.</td>
+              <td class="flag-default">auto from session</td>
+            </tr>
+            <tr>
+              <td class="flag-name">--topic &lt;topic&gt;</td>
+              <td class="flag-desc">Topic/subject area (e.g., cli, dashboard). Auto-inferred if omitted.</td>
+              <td class="flag-default">auto</td>
+            </tr>
+            <tr>
+              <td class="flag-name">--type &lt;type&gt;</td>
+              <td class="flag-desc">Artifact type: <code>decision</code>, <code>analysis</code>, <code>handoff</code>, <code>question</code>, <code>milestone</code>. Auto-inferred if omitted.</td>
+              <td class="flag-default">auto</td>
+            </tr>
+            <tr>
+              <td class="flag-name">--auto</td>
+              <td class="flag-desc">Auto-generate from git state and session info. Used by the stop hook.</td>
+              <td class="flag-default">false</td>
+            </tr>
+            <tr>
+              <td class="flag-name">--quiet</td>
+              <td class="flag-desc">Suppress output. Useful when running from hooks.</td>
+              <td class="flag-default">false</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="examples-label">Examples</div>
+        <div class="code-block">
+<span class="comment"># Manual deposit with decisions and handoff</span>
+<span class="prompt">$</span><span class="cmd">relay deposit \</span>
+  <span class="flag">--title</span> <span class="str">"[KEY] Architecture decision: Supabase over PlanetScale"</span> \
+  <span class="flag">--decisions</span> <span class="str">"Using Supabase for pgvector support"</span> <span class="str">"BSL 1.1 license chosen"</span> \
+  <span class="flag">--handoff</span> <span class="str">"Schema migration in supabase/migrations/. Next: wire client."</span>
+
+<span class="comment"># Auto-deposit from git state (fires from stop hook)</span>
+<span class="prompt">$</span><span class="cmd">relay deposit --auto --quiet</span>
+
+<span class="comment"># Deposit to a specific project with open questions</span>
+<span class="prompt">$</span><span class="cmd">relay deposit \</span>
+  <span class="flag">--title</span> <span class="str">"Benchmark run complete"</span> \
+  <span class="flag">--project</span> <span class="val">proj_dev_relay</span> \
+  <span class="flag">--questions</span> <span class="str">"Should we embed at ingest or at query time?"</span> \
+  <span class="flag">--status</span> <span class="val">pending_review</span> \
+  <span class="flag">--review</span> <span class="val">human</span>
+        </div>
+
+        <div class="lime-box">
+          <strong>When to deposit:</strong> Self-assess significance. If it includes decisions_made, open_questions, or a meaningful handoff_note — and would score 7+ on importance — deposit it. The stop hook captures git state automatically; manual deposits capture <em>why</em>.
+        </div>
+      </div>
+    </div>
+
+    <div class="section-sep"></div>
+
+    <!-- relay pull -->
+    <div class="cmd-section" id="pull">
+      <div class="cmd-card">
+        <div class="cmd-header">
+          <div class="cmd-name">relay pull</div>
+          <div class="cmd-tag">Context Retrieval</div>
+        </div>
+        <div class="cmd-synopsis">
+          <span class="cmd-part">relay pull</span>
+          <span class="arg-part"> [package_id]</span>
+          <span class="flag-part"> [--latest] [--project &lt;id&gt;] [--query &lt;terms&gt;]</span>
+        </div>
+        <p class="cmd-desc">
+          Pull context packages from the Context Core. Use <code>--latest</code> to get the most recent package for the current project, pass a specific package ID to retrieve by reference, or use <code>--query</code> for semantic search. The pulled package is tracked in the current session and sets the parent for the next deposit.
+        </p>
+
+        <table class="flags-table">
+          <thead>
+            <tr><th>Flag</th><th>Description</th><th>Default</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="flag-name">[package_id]</td>
+              <td class="flag-desc">Positional argument. Pull a specific package by ID.</td>
+              <td class="flag-default">—</td>
+            </tr>
+            <tr>
+              <td class="flag-name">--latest</td>
+              <td class="flag-desc">Pull the single most recent package for the project.</td>
+              <td class="flag-default">false</td>
+            </tr>
+            <tr>
+              <td class="flag-name">--project &lt;id&gt;</td>
+              <td class="flag-desc">Project ID to pull from. Defaults to CWD-detected project.</td>
+              <td class="flag-default">CWD-detected</td>
+            </tr>
+            <tr>
+              <td class="flag-name">--query &lt;terms&gt;</td>
+              <td class="flag-desc">Semantic search — returns the most relevant package(s) for the search terms.</td>
+              <td class="flag-default">—</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="examples-label">Examples</div>
+        <div class="code-block">
+<span class="comment"># Pull the most recent package</span>
+<span class="prompt">$</span><span class="cmd">relay pull --latest</span>
+
+<span class="comment"># Pull from a specific project</span>
+<span class="prompt">$</span><span class="cmd">relay pull --latest --project proj_dev_relay</span>
+
+<span class="comment"># Pull a specific package by ID</span>
+<span class="prompt">$</span><span class="cmd">relay pull pkg_f7b1a8d6...</span>
+
+<span class="comment"># Semantic search</span>
+<span class="prompt">$</span><span class="cmd">relay pull --query "embedding strategy decision"</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-sep"></div>
+
+    <!-- relay orient -->
+    <div class="cmd-section" id="orient">
+      <div class="cmd-card">
+        <div class="cmd-header">
+          <div class="cmd-name">relay orient</div>
+          <div class="cmd-tag">Session Start</div>
+        </div>
+        <div class="cmd-synopsis">
+          <span class="cmd-part">relay orient</span>
+          <span class="flag-part"> [--project &lt;id&gt;] [--json] [--key-packages &lt;n&gt;] [--open-questions &lt;n&gt;] [--window &lt;days&gt;]</span>
+        </div>
+        <p class="cmd-desc">
+          Print a compact wake-up bundle for the current (or specified) project. Designed to be called from a Claude Code <code>SessionStart</code> hook so every session begins oriented without the agent having to explicitly pull context. The bundle includes the top-significance packages, the latest meaningful handoff, and the most pressing open questions — all in approximately 250 tokens of markdown.
+        </p>
+
+        <table class="flags-table">
+          <thead>
+            <tr><th>Flag</th><th>Description</th><th>Default</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="flag-name">--project &lt;id&gt;</td>
+              <td class="flag-desc">Project ID. Omit to use CWD-resolved or configured default.</td>
+              <td class="flag-default">CWD-detected</td>
+            </tr>
+            <tr>
+              <td class="flag-name">--json</td>
+              <td class="flag-desc">Emit JSON instead of markdown. Useful for programmatic consumption.</td>
+              <td class="flag-default">markdown</td>
+            </tr>
+            <tr>
+              <td class="flag-name">--key-packages &lt;n&gt;</td>
+              <td class="flag-desc">Number of top-significance packages to include in the bundle.</td>
+              <td class="flag-default">3</td>
+            </tr>
+            <tr>
+              <td class="flag-name">--open-questions &lt;n&gt;</td>
+              <td class="flag-desc">Number of open questions to include.</td>
+              <td class="flag-default">5</td>
+            </tr>
+            <tr>
+              <td class="flag-name">--window &lt;days&gt;</td>
+              <td class="flag-desc">Time window in days for package selection. Overrides meta control.</td>
+              <td class="flag-default">14</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="examples-label">Examples</div>
+        <div class="code-block">
+<span class="comment"># Print orientation bundle for current project</span>
+<span class="prompt">$</span><span class="cmd">relay orient</span>
+
+<span class="comment"># JSON output for programmatic use</span>
+<span class="prompt">$</span><span class="cmd">relay orient --json</span>
+
+<span class="comment"># More context: 5 key packages, 10 questions, 30-day window</span>
+<span class="prompt">$</span><span class="cmd">relay orient --key-packages 5 --open-questions 10 --window 30</span>
+
+<span class="comment"># In SessionStart hook (non-fatal on error, exits 0)</span>
+<span class="comment"># relay orient --quiet  →  add to ~/.claude/settings.json SessionStart hooks</span>
+        </div>
+
+        <div class="info-box">
+          <strong>Hook integration:</strong> <code>relay orient</code> is designed to be non-fatal. If it fails (no packages, misconfigured project), it prints a note to stderr and exits 0 — it will never block session creation.
+        </div>
+      </div>
+    </div>
+
+    <div class="section-sep"></div>
+
+    <!-- relay orchestrate -->
+    <div class="cmd-section" id="orchestrate">
+      <div class="cmd-card">
+        <div class="cmd-header">
+          <div class="cmd-name">relay orchestrate</div>
+          <div class="cmd-tag">Global Digest</div>
+        </div>
+        <div class="cmd-synopsis">
+          <span class="cmd-part">relay orchestrate</span>
+          <span class="flag-part"> [--project &lt;id&gt;] [--focus &lt;topic&gt;] [--snippets &lt;n&gt;]</span>
+        </div>
+        <p class="cmd-desc">
+          Assemble a comprehensive context digest across one or all projects. Outputs structured data — packages, decisions, open questions, handoff notes, and semantic snippets — to stdout for agent consumption. The calling agent (Claude Code or another LLM) synthesizes the output into insights. Omit <code>--project</code> for a global digest across all registered projects.
+        </p>
+
+        <table class="flags-table">
+          <thead>
+            <tr><th>Flag</th><th>Description</th><th>Default</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="flag-name">--project &lt;id&gt;</td>
+              <td class="flag-desc">Project ID for single-project digest. Omit for global digest.</td>
+              <td class="flag-default">all projects</td>
+            </tr>
+            <tr>
+              <td class="flag-name">--focus &lt;topic&gt;</td>
+              <td class="flag-desc">Focus the digest on a specific topic or area.</td>
+              <td class="flag-default">—</td>
+            </tr>
+            <tr>
+              <td class="flag-name">--snippets &lt;n&gt;</td>
+              <td class="flag-desc">Number of semantic search snippets to include. Increase for deeper context.</td>
+              <td class="flag-default">25</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="examples-label">Examples</div>
+        <div class="code-block">
+<span class="comment"># Global digest across all projects</span>
+<span class="prompt">$</span><span class="cmd">relay orchestrate</span>
+
+<span class="comment"># Single project digest</span>
+<span class="prompt">$</span><span class="cmd">relay orchestrate --project proj_dev_relay</span>
+
+<span class="comment"># Focused digest with more semantic context</span>
+<span class="prompt">$</span><span class="cmd">relay orchestrate --focus "embedding strategy" --snippets 50</span>
+        </div>
+
+        <div class="info-box">
+          <strong>Relay is not the synthesizer.</strong> <code>relay orchestrate</code> assembles raw context from the Core and writes it to stdout. The agent reading that output does the analysis. This means synthesis quality scales with your LLM, not with Relay's server.
+        </div>
+      </div>
+    </div>
+
+    <div class="section-sep"></div>
+
+    <!-- relay facts -->
+    <div class="cmd-section" id="facts">
+      <div class="cmd-card">
+        <div class="cmd-header">
+          <div class="cmd-name">relay facts</div>
+          <div class="cmd-tag">Mutable Whiteboard</div>
+        </div>
+        <div class="cmd-synopsis">
+          <span class="cmd-part">relay facts</span>
+          <span class="arg-part"> &lt;assert|invalidate|query&gt;</span>
+          <span class="flag-part"> [options]</span>
+        </div>
+        <p class="cmd-desc">
+          Manage the mutable facts whiteboard — the current-truth layer that sits alongside the immutable package journal. Facts are (subject, relation, object) triples. Asserting a fact with the same (subject, relation) as an existing active fact automatically supersedes it. Use facts for things that change over time: configuration choices, boolean feature flags, who owns what. Packages are the historical record; facts are the current truth.
+        </p>
+
+        <div class="subcmds">
+          <div class="subcmd">
+            <div class="subcmd-name">relay facts <span class="sub">assert</span> &lt;subject&gt; &lt;relation&gt; &lt;object&gt;</div>
+            <div class="subcmd-desc">Assert a fact. Auto-supersedes any existing active fact with the same (subject, relation).</div>
+            <table class="flags-table">
+              <thead><tr><th>Flag</th><th>Description</th></tr></thead>
+              <tbody>
+                <tr><td class="flag-name">--source &lt;pkg_id&gt;</td><td class="flag-desc">Optional package ID this fact was derived from.</td></tr>
+                <tr><td class="flag-name">--project &lt;id&gt;</td><td class="flag-desc">Project ID. Omit to use default.</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="subcmd">
+            <div class="subcmd-name">relay facts <span class="sub">invalidate</span> &lt;subject&gt; &lt;relation&gt; [object]</div>
+            <div class="subcmd-desc">Mark active facts as ended. If object is omitted, all active (subject, relation) facts are ended.</div>
+            <table class="flags-table">
+              <thead><tr><th>Flag</th><th>Description</th></tr></thead>
+              <tbody>
+                <tr><td class="flag-name">--project &lt;id&gt;</td><td class="flag-desc">Project ID. Omit to use default.</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="subcmd">
+            <div class="subcmd-name">relay facts <span class="sub">query</span></div>
+            <div class="subcmd-desc">Query facts. Returns currently-active facts by default.</div>
+            <table class="flags-table">
+              <thead><tr><th>Flag</th><th>Description</th><th>Default</th></tr></thead>
+              <tbody>
+                <tr><td class="flag-name">--subject &lt;s&gt;</td><td class="flag-desc">Filter by subject.</td><td class="flag-default">—</td></tr>
+                <tr><td class="flag-name">--relation &lt;r&gt;</td><td class="flag-desc">Filter by relation.</td><td class="flag-default">—</td></tr>
+                <tr><td class="flag-name">--object &lt;o&gt;</td><td class="flag-desc">Filter by object.</td><td class="flag-default">—</td></tr>
+                <tr><td class="flag-name">--as-of &lt;iso&gt;</td><td class="flag-desc">Time-travel: facts active at this ISO timestamp.</td><td class="flag-default">now</td></tr>
+                <tr><td class="flag-name">--include-ended</td><td class="flag-desc">Also return ended (superseded) facts.</td><td class="flag-default">false</td></tr>
+                <tr><td class="flag-name">--limit &lt;n&gt;</td><td class="flag-desc">Cap result count.</td><td class="flag-default">—</td></tr>
+                <tr><td class="flag-name">--json</td><td class="flag-desc">Emit JSON instead of formatted lines.</td><td class="flag-default">false</td></tr>
+                <tr><td class="flag-name">--project &lt;id&gt;</td><td class="flag-desc">Project ID. Omit to use default.</td><td class="flag-default">—</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="examples-label">Examples</div>
+        <div class="code-block">
+<span class="comment"># Assert a boolean flag</span>
+<span class="prompt">$</span><span class="cmd">relay facts assert session_start_hook installed true</span>
+
+<span class="comment"># Assert a configuration choice (auto-supersedes prior value)</span>
+<span class="prompt">$</span><span class="cmd">relay facts assert relay-dashboard font "JetBrains Mono"</span>
+
+<span class="comment"># Invalidate when something stops being true</span>
+<span class="prompt">$</span><span class="cmd">relay facts invalidate feature-flag embeddings-enabled</span>
+
+<span class="comment"># Query all active facts</span>
+<span class="prompt">$</span><span class="cmd">relay facts query</span>
+
+<span class="comment"># Time-travel query</span>
+<span class="prompt">$</span><span class="cmd">relay facts query --as-of 2025-01-01T00:00:00Z --include-ended</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-sep"></div>
+
+    <!-- relay session -->
+    <div class="cmd-section" id="session">
+      <div class="cmd-card">
+        <div class="cmd-header">
+          <div class="cmd-name">relay session</div>
+          <div class="cmd-tag">Session Lifecycle</div>
+        </div>
+        <div class="cmd-synopsis">
+          <span class="cmd-part">relay session</span>
+          <span class="arg-part"> &lt;start|end|status&gt;</span>
+          <span class="flag-part"> [options]</span>
+        </div>
+        <p class="cmd-desc">
+          Manage the Relay session lifecycle. Sessions track which packages were pulled and deposited, maintain a parent package chain for lineage, and register the actor with the Context Core. The stop hook handles auto-deposit on session exit; <code>relay session start</code> is optional for manual session tracking.
+        </p>
+
+        <div class="subcmds">
+          <div class="subcmd">
+            <div class="subcmd-name">relay session <span class="sub">start</span></div>
+            <div class="subcmd-desc">Start a new session and register it with the Context Core.</div>
+            <table class="flags-table">
+              <thead><tr><th>Flag</th><th>Description</th></tr></thead>
+              <tbody>
+                <tr><td class="flag-name">--project &lt;id&gt;</td><td class="flag-desc">Project ID for this session.</td></tr>
+                <tr><td class="flag-name">--description &lt;desc&gt;</td><td class="flag-desc">Description of this agent or session instance.</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="subcmd">
+            <div class="subcmd-name">relay session <span class="sub">end</span></div>
+            <div class="subcmd-desc">End the current session, close it in the Context Core, and clear local session state.</div>
+          </div>
+
+          <div class="subcmd">
+            <div class="subcmd-name">relay session <span class="sub">status</span></div>
+            <div class="subcmd-desc">Show info about the current active session: project, actor, start time, packages pulled and deposited.</div>
+          </div>
+        </div>
+
+        <div class="examples-label">Examples</div>
+        <div class="code-block">
+<span class="comment"># Start a tracked session</span>
+<span class="prompt">$</span><span class="cmd">relay session start --project proj_dev_relay --description "CLI refactor"</span>
+
+<span class="comment"># Check current session</span>
+<span class="prompt">$</span><span class="cmd">relay session status</span>
+
+<span class="comment"># End the session (stop hook does this automatically)</span>
+<span class="prompt">$</span><span class="cmd">relay session end</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-sep"></div>
+
+    <!-- relay status -->
+    <div class="cmd-section" id="status">
+      <div class="cmd-card">
+        <div class="cmd-header">
+          <div class="cmd-name">relay status</div>
+          <div class="cmd-tag">Project Overview</div>
+        </div>
+        <div class="cmd-synopsis">
+          <span class="cmd-part">relay status</span>
+          <span class="flag-part"> [--project &lt;id&gt;]</span>
+        </div>
+        <p class="cmd-desc">
+          Show a project status overview: the 10 most recent packages with their status labels, any packages pending review, and a summary of open questions. A quick health check for the current project without needing to pull full package content.
+        </p>
+
+        <table class="flags-table">
+          <thead><tr><th>Flag</th><th>Description</th><th>Default</th></tr></thead>
+          <tbody>
+            <tr><td class="flag-name">--project &lt;id&gt;</td><td class="flag-desc">Project ID to check status for.</td><td class="flag-default">CWD-detected</td></tr>
+          </tbody>
+        </table>
+
+        <div class="examples-label">Examples</div>
+        <div class="code-block">
+<span class="comment"># Status for CWD project</span>
+<span class="prompt">$</span><span class="cmd">relay status</span>
+
+<span class="comment"># Status for a specific project</span>
+<span class="prompt">$</span><span class="cmd">relay status --project proj_dev_relay</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-sep"></div>
+
+    <!-- relay daily -->
+    <div class="cmd-section" id="daily">
+      <div class="cmd-card">
+        <div class="cmd-header">
+          <div class="cmd-name">relay daily</div>
+          <div class="cmd-tag">Daily Workflow</div>
+        </div>
+        <div class="cmd-synopsis">
+          <span class="cmd-part">relay daily</span>
+          <span class="arg-part"> &lt;boot|logoff&gt;</span>
+          <span class="flag-part"> [options]</span>
+        </div>
+        <p class="cmd-desc">
+          Structured daily workflow commands. <code>boot</code> runs a global orchestrate, cross-references your Obsidian TODOs, and prints a morning brief. <code>logoff</code> summarizes the day's activity, reconciles the TODO list against what was done, and deposits a day summary to the meta project. Integrates with Obsidian Vault via the <code>obsidian_vault</code> config key.
+        </p>
+
+        <div class="subcmds">
+          <div class="subcmd">
+            <div class="subcmd-name">relay daily <span class="sub">boot</span></div>
+            <div class="subcmd-desc">Morning check-in. Runs global orchestrate, reads TODO TODAY and TODO TOMORROW from Obsidian, prints a structured daily brief.</div>
+            <table class="flags-table">
+              <thead><tr><th>Flag</th><th>Description</th><th>Default</th></tr></thead>
+              <tbody>
+                <tr><td class="flag-name">--todo-today &lt;path&gt;</td><td class="flag-desc">Override path to TODO TODAY markdown file.</td><td class="flag-default">Obsidian vault</td></tr>
+                <tr><td class="flag-name">--todo-tomorrow &lt;path&gt;</td><td class="flag-desc">Override path to TODO TOMORROW markdown file.</td><td class="flag-default">Obsidian vault</td></tr>
+                <tr><td class="flag-name">--deposit</td><td class="flag-desc">Deposit the boot analysis to the configured meta project.</td><td class="flag-default">false</td></tr>
+                <tr><td class="flag-name">--focus &lt;topic&gt;</td><td class="flag-desc">Focus area for the orchestrate pass.</td><td class="flag-default">—</td></tr>
+                <tr><td class="flag-name">--quiet</td><td class="flag-desc">Suppress progress messages to stderr.</td><td class="flag-default">false</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="subcmd">
+            <div class="subcmd-name">relay daily <span class="sub">logoff</span></div>
+            <div class="subcmd-desc">Evening wrap-up. Runs global orchestrate, reconciles today's TODO list (done vs. incomplete), carries incomplete items forward, and deposits a day summary.</div>
+            <table class="flags-table">
+              <thead><tr><th>Flag</th><th>Description</th><th>Default</th></tr></thead>
+              <tbody>
+                <tr><td class="flag-name">--thoughts &lt;text&gt;</td><td class="flag-desc">End-of-day reflection to include in the summary (deposited to thoughts project if configured).</td><td class="flag-default">—</td></tr>
+                <tr><td class="flag-name">--skip-deposit</td><td class="flag-desc">Generate the summary without depositing it.</td><td class="flag-default">false</td></tr>
+                <tr><td class="flag-name">--quiet</td><td class="flag-desc">Suppress progress messages.</td><td class="flag-default">false</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="examples-label">Examples</div>
+        <div class="code-block">
+<span class="comment"># Morning: orchestrate all projects + Obsidian TODO cross-reference</span>
+<span class="prompt">$</span><span class="cmd">relay daily boot</span>
+
+<span class="comment"># Morning + deposit to meta project</span>
+<span class="prompt">$</span><span class="cmd">relay daily boot --deposit</span>
+
+<span class="comment"># Evening wrap-up with reflection</span>
+<span class="prompt">$</span><span class="cmd">relay daily logoff --thoughts "Embeddings decision resolved. Now: wire reranker."</span>
+
+<span class="comment"># Evening without auto-deposit</span>
+<span class="prompt">$</span><span class="cmd">relay daily logoff --skip-deposit</span>
+        </div>
+
+        <div class="info-box">
+          <strong>Config keys:</strong> Set <code>relay config set obsidian_vault /path/to/vault</code> to enable TODO integration. <code>meta_project</code> and <code>thoughts_project</code> control where deposits go. See <a href="#config" style="color:var(--cyan);">relay config</a>.
+        </div>
+      </div>
+    </div>
+
+    <div class="section-sep"></div>
+
+    <!-- relay projects -->
+    <div class="cmd-section" id="projects">
+      <div class="cmd-card">
+        <div class="cmd-header">
+          <div class="cmd-name">relay projects</div>
+          <div class="cmd-tag">Project Management</div>
+        </div>
+        <div class="cmd-synopsis">
+          <span class="cmd-part">relay projects</span>
+          <span class="arg-part"> &lt;list|create|info|archive|restore&gt;</span>
+          <span class="flag-part"> [options]</span>
+        </div>
+        <p class="cmd-desc">
+          Manage Relay projects. Each project is an isolated context namespace with its own package journal and facts whiteboard. Projects are referenced by their ID (e.g., <code>proj_dev_relay</code>) in all other commands. Projects can be soft-archived when they go dormant — archived projects are hidden from listings and digests, and auto-deposits routed to them are skipped.
+        </p>
+
+        <div class="subcmds">
+          <div class="subcmd">
+            <div class="subcmd-name">relay projects <span class="sub">list</span></div>
+            <div class="subcmd-desc">List all projects you have access to, showing their IDs and names. Archived projects are hidden by default.</div>
+            <table class="flags-table">
+              <thead><tr><th>Flag</th><th>Description</th><th>Default</th></tr></thead>
+              <tbody>
+                <tr><td class="flag-name">-a, --include-archived</td><td class="flag-desc">Include archived projects in the list. Archived rows are tagged <code>[ARCHIVED]</code>.</td><td class="flag-default">false</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="subcmd">
+            <div class="subcmd-name">relay projects <span class="sub">create</span> &lt;name&gt;</div>
+            <div class="subcmd-desc">Create a new project with the given name.</div>
+            <table class="flags-table">
+              <thead><tr><th>Flag</th><th>Description</th></tr></thead>
+              <tbody>
+                <tr><td class="flag-name">--description &lt;desc&gt;</td><td class="flag-desc">Project description.</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="subcmd">
+            <div class="subcmd-name">relay projects <span class="sub">info</span> [id]</div>
+            <div class="subcmd-desc">Show full project details as JSON.</div>
+          </div>
+
+          <div class="subcmd">
+            <div class="subcmd-name">relay projects <span class="sub">archive</span> &lt;id&gt;</div>
+            <div class="subcmd-desc">Soft-archive a project by stamping <code>archived_at</code>. Reversible — no data is deleted. Once archived: deposits routed to this project are skipped (auto-deposits exit cleanly, manual deposits error), the project is hidden from <code>relay projects list</code>, and <code>relay orchestrate</code>'s global digest excludes it.</div>
+            <table class="flags-table">
+              <thead><tr><th>Flag</th><th>Description</th><th>Default</th></tr></thead>
+              <tbody>
+                <tr><td class="flag-name">--force</td><td class="flag-desc">Required to archive the meta project (<code>proj_dev_relay</code>) — guarded to prevent accidentally silencing the project that owns Relay itself.</td><td class="flag-default">false</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="subcmd">
+            <div class="subcmd-name">relay projects <span class="sub">restore</span> &lt;id&gt;</div>
+            <div class="subcmd-desc">Restore a previously-archived project to active state by clearing <code>archived_at</code>. Deposits and digests resume immediately.</div>
+          </div>
+        </div>
+
+        <div class="examples-label">Examples</div>
+        <div class="code-block">
+<span class="comment"># List active projects</span>
+<span class="prompt">$</span><span class="cmd">relay projects list</span>
+
+<span class="comment"># List everything, including archived</span>
+<span class="prompt">$</span><span class="cmd">relay projects list -a</span>
+
+<span class="comment"># Create a new project</span>
+<span class="prompt">$</span><span class="cmd">relay projects create "NeuralDistortion" --description "VST3 plugin research"</span>
+
+<span class="comment"># Inspect a project</span>
+<span class="prompt">$</span><span class="cmd">relay projects info proj_dev_relay</span>
+
+<span class="comment"># Archive a dormant project</span>
+<span class="prompt">$</span><span class="cmd">relay projects archive proj_old_experiment</span>
+
+<span class="comment"># Restore an archived project</span>
+<span class="prompt">$</span><span class="cmd">relay projects restore proj_old_experiment</span>
+
+<span class="comment"># Archive the meta project (guarded — requires --force)</span>
+<span class="prompt">$</span><span class="cmd">relay projects archive proj_dev_relay --force</span>
+        </div>
+
+        <div class="info-box">
+          <strong>Meta-project guard:</strong> The Relay meta project (<code>proj_dev_relay</code>) is the project that owns Relay's own context. Archiving it without <code>--force</code> is rejected to prevent footguns — silencing it would mute the system that's tracking the rest of your work.
+        </div>
+      </div>
+    </div>
+
+    <div class="section-sep"></div>
+
+    <!-- relay backup -->
+    <div class="cmd-section" id="backup">
+      <div class="cmd-card">
+        <div class="cmd-header">
+          <div class="cmd-name">relay backup</div>
+          <div class="cmd-tag">Export &amp; Portability</div>
+        </div>
+        <div class="cmd-synopsis">
+          <span class="cmd-part">relay backup</span>
+          <span class="flag-part"> [--project &lt;id&gt;] [--out &lt;path&gt;] [--all-projects]</span>
+        </div>
+        <p class="cmd-desc">
+          Export a project's packages, facts, sessions, and blob payloads to a local directory. Output is protocol-portable — NDJSON for tabular data, a <code>blobs/</code> subdirectory for binary deliverables — so any conformant Agentic Protocol implementation (not just Relay) can consume the result. Safe to run while Relay is in use; the backup is read-only against the live store.
+        </p>
+
+        <table class="flags-table">
+          <thead>
+            <tr><th>Flag</th><th>Description</th><th>Default</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="flag-name">--project &lt;id&gt;</td>
+              <td class="flag-desc">Target project. Resolved from CWD via <code>~/.relay/config.json</code> <code>project_paths</code> if omitted.</td>
+              <td class="flag-default">CWD-detected</td>
+            </tr>
+            <tr>
+              <td class="flag-name">--out &lt;path&gt;</td>
+              <td class="flag-desc">Output directory. Created if missing.</td>
+              <td class="flag-default">./relay-backup-&lt;iso&gt;/</td>
+            </tr>
+            <tr>
+              <td class="flag-name">--all-projects</td>
+              <td class="flag-desc">Back up every accessible project. Each project lands in its own subdirectory under <code>--out</code>.</td>
+              <td class="flag-default">false</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="examples-label">Output layout</div>
+        <div class="code-block">
+relay-backup-2026-04-18T21-02-00Z/
+  manifest.json          <span class="comment"># project metadata + counts + protocol version</span>
+  packages.ndjson        <span class="comment"># one Context Package per line (§6 wire format)</span>
+  facts.ndjson           <span class="comment"># one Fact per line (§7 wire format)</span>
+  sessions.ndjson        <span class="comment"># one Session per line (§5.5)</span>
+  blobs/                 <span class="comment"># package deliverables, named by content hash</span>
+    sha256-abc123....bin
+    sha256-def456....bin
+        </div>
+
+        <div class="examples-label">Examples</div>
+        <div class="code-block">
+<span class="comment"># Backup the CWD-resolved project to default ./relay-backup-&lt;iso&gt;/</span>
+<span class="prompt">$</span><span class="cmd">relay backup</span>
+
+<span class="comment"># Backup a specific project to a chosen path</span>
+<span class="prompt">$</span><span class="cmd">relay backup --project proj_dev_relay --out ~/backups/relay-2026-04</span>
+
+<span class="comment"># Backup every project (each becomes a subdirectory)</span>
+<span class="prompt">$</span><span class="cmd">relay backup --all-projects --out ~/backups/relay-full</span>
+        </div>
+
+        <div class="info-box">
+          <strong>Resolution rules:</strong> if you pass neither <code>--project</code> nor <code>--all-projects</code> and the CWD has no <code>project_paths</code> mapping, the command errors out rather than guessing.
+        </div>
+
+        <div class="lime-box">
+          <strong>Protocol-portable:</strong> Backups use the §6 / §7 wire formats from the <a href="/protocol/" style="color:var(--lime);">Agentic Protocol spec</a>. Any other conformant implementation can ingest the same NDJSON — useful for migrating off Relay, archiving long-term, or moving between Supabase projects.
+        </div>
+      </div>
+    </div>
+
+    <div class="section-sep"></div>
+
+    <!-- Coming next -->
+    <div class="cmd-section" id="coming-next">
+      <div class="cmd-card">
+        <div class="cmd-header">
+          <div class="cmd-name" style="color:var(--lime);">Coming in v0.2</div>
+          <div class="cmd-tag">Roadmap</div>
+        </div>
+        <p class="cmd-desc">
+          The export side of portability shipped in v0.1. The import side and the cross-implementation sync layer are landing in v0.2, alongside pluggable storage adapters that let Relay run against backends other than Supabase.
+        </p>
+
+        <div class="subcmds">
+          <div class="subcmd">
+            <div class="subcmd-name"><span class="sub">relay restore</span> &lt;backup-path&gt;</div>
+            <div class="subcmd-desc">Inverse of <code>relay backup</code>. Reads a backup directory (NDJSON + blobs) and replays it into the active Core. Idempotent — re-importing the same backup is safe.</div>
+          </div>
+
+          <div class="subcmd">
+            <div class="subcmd-name"><span class="sub">relay sync</span> &lt;remote&gt;</div>
+            <div class="subcmd-desc">Stream packages and facts between two conformant implementations over the wire format. Bidirectional, with conflict policy following the <em>immutable append + supersession</em> model from §5.1 of the protocol.</div>
+          </div>
+
+          <div class="subcmd">
+            <div class="subcmd-name">Pluggable storage adapters</div>
+            <div class="subcmd-desc">A <code>RelayStorage</code> interface lets Relay run against backends other than Supabase. SQLite (single-user, embedded) is first; flat-file NDJSON and S3-backed object stores follow.</div>
+          </div>
+        </div>
+
+        <div class="info-box">
+          <strong>Track the roadmap:</strong> see <code>docs/V02_ROADMAP.md</code> in the repo, or open question 6 in the <a href="/protocol/#section-16" style="color:var(--cyan);">Agentic Protocol spec § 16</a>.
+        </div>
+      </div>
+    </div>
+
+    <div class="section-sep"></div>
+
+    <!-- relay config -->
+    <div class="cmd-section" id="config">
+      <div class="cmd-card">
+        <div class="cmd-header">
+          <div class="cmd-name">relay config</div>
+          <div class="cmd-tag">Configuration</div>
+        </div>
+        <div class="cmd-synopsis">
+          <span class="cmd-part">relay config</span>
+          <span class="arg-part"> &lt;show|set|get&gt;</span>
+          <span class="flag-part"> [key] [value]</span>
+        </div>
+        <p class="cmd-desc">
+          Read and write the global Relay configuration file at <code>~/.relay/config.json</code>. All other commands read from this file. Keys use underscores internally but accept hyphens on the command line (auto-normalized).
+        </p>
+
+        <div class="subcmds">
+          <div class="subcmd">
+            <div class="subcmd-name">relay config <span class="sub">show</span></div>
+            <div class="subcmd-desc">Print the full config as JSON.</div>
+          </div>
+
+          <div class="subcmd">
+            <div class="subcmd-name">relay config <span class="sub">set</span> &lt;key&gt; &lt;value&gt;</div>
+            <div class="subcmd-desc">Set a config value. Hyphens in keys are normalized to underscores.</div>
+          </div>
+
+          <div class="subcmd">
+            <div class="subcmd-name">relay config <span class="sub">get</span> &lt;key&gt;</div>
+            <div class="subcmd-desc">Print a single config value.</div>
+          </div>
+        </div>
+
+        <div class="examples-label">Common config keys</div>
+        <div class="code-block">
+<span class="comment"># Core connection</span>
+<span class="prompt">$</span><span class="cmd">relay config set core-url https://your-project.supabase.co</span>
+<span class="prompt">$</span><span class="cmd">relay config set api-key your-anon-key</span>
+
+<span class="comment"># Actor identity</span>
+<span class="prompt">$</span><span class="cmd">relay config set actor-id your-name</span>
+<span class="prompt">$</span><span class="cmd">relay config set actor-type human</span>
+
+<span class="comment"># Default project (used when CWD is not mapped)</span>
+<span class="prompt">$</span><span class="cmd">relay config set default-project proj_dev_relay</span>
+
+<span class="comment"># Obsidian integration</span>
+<span class="prompt">$</span><span class="cmd">relay config set obsidian_vault /Users/you/Documents/Obsidian\ Vault</span>
+
+<span class="comment"># Daily workflow projects</span>
+<span class="prompt">$</span><span class="cmd">relay config set meta_project proj_meta_id</span>
+<span class="prompt">$</span><span class="cmd">relay config set thoughts_project proj_thoughts_id</span>
+
+<span class="comment"># View current config</span>
+<span class="prompt">$</span><span class="cmd">relay config show</span>
+        </div>
+
+        <div class="info-box">
+          <strong>CWD project mapping:</strong> To auto-detect which project to deposit to based on your working directory, add <code>project_paths</code> to <code>~/.relay/config.json</code> manually: <code>{ "project_paths": { "/path/to/repo": "proj_abc123" } }</code>. The stop hook uses this to route auto-deposits without flags.
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    <a href="https://tensorpunklabs.com" target="_blank">Tensorpunk Labs</a>
+    <span>BSL 1.1 &middot; Open Source</span>
+    <a href="mailto:contact@tensorpunk.com">contact@tensorpunk.com</a>
+  </footer>
+
+  <!-- Three.js cortex shader (same as landing page) -->
+  <script type="importmap">
+  { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js" } }
+  </script>
+  <script type="module">
+    import * as THREE from 'three';
+    const canvas = document.getElementById('bg-canvas');
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: false });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+    renderer.setClearColor(0x0a0c10, 1);
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 100);
+    camera.position.z = 4;
+
+    const NODE_COUNT = 120;
+    const EDGE_COUNT = 180;
+    const positions = new Float32Array(NODE_COUNT * 3);
+    const phases = new Float32Array(NODE_COUNT);
+    const CLUSTERS = [
+      { x: -1.5, y: 0.5, z: -0.5, r: 1.2 },
+      { x: 1.2, y: -0.3, z: 0.3, r: 1.0 },
+      { x: 0.0, y: 0.8, z: -0.8, r: 0.9 },
+      { x: -0.3, y: -0.8, z: 0.6, r: 0.8 },
+    ];
+    const velocities = new Float32Array(NODE_COUNT * 3);
+    for (let i = 0; i < NODE_COUNT; i++) {
+      const c = CLUSTERS[i % CLUSTERS.length];
+      const theta = Math.random() * Math.PI * 2;
+      const phi = Math.acos(2 * Math.random() - 1);
+      const r = c.r * (0.3 + Math.random() * 0.7);
+      positions[i*3+0] = c.x + r * Math.sin(phi) * Math.cos(theta);
+      positions[i*3+1] = c.y + r * Math.sin(phi) * Math.sin(theta);
+      positions[i*3+2] = c.z + r * Math.cos(phi);
+      velocities[i*3+0] = (Math.random()-0.5) * 0.003;
+      velocities[i*3+1] = (Math.random()-0.5) * 0.003;
+      velocities[i*3+2] = (Math.random()-0.5) * 0.002;
+      phases[i] = Math.random() * Math.PI * 2;
+    }
+
+    const nodeGeo = new THREE.BufferGeometry();
+    nodeGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    nodeGeo.setAttribute('aPhase', new THREE.BufferAttribute(phases, 1));
+    const nodeMat = new THREE.ShaderMaterial({
+      transparent: true, blending: THREE.AdditiveBlending, depthWrite: false,
+      uniforms: { uTime: { value: 0 } },
+      vertexShader: `attribute float aPhase; uniform float uTime; varying float vAlpha; varying float vLime;
+        void main() { vec3 p = position; p.x += sin(uTime*0.2+aPhase)*0.06; p.y += cos(uTime*0.18+aPhase*1.3)*0.05;
+        vec4 mv = modelViewMatrix * vec4(p,1.0); float b = 0.8+0.2*sin(uTime*0.5+aPhase);
+        gl_PointSize = (20.0/-mv.z)*b; gl_Position = projectionMatrix*mv;
+        vAlpha = 0.35+0.25*sin(uTime*0.35+aPhase*0.7); vLime = step(0.88, fract(aPhase*7.13)); }`,
+      fragmentShader: `varying float vAlpha; varying float vLime;
+        void main() { float d = length(gl_PointCoord-0.5); if (d>0.5) discard;
+        float g = pow(1.0-d*2.0, 2.8); vec3 col = mix(vec3(0.0,0.87,1.0), vec3(0.83,0.96,0.0), vLime);
+        gl_FragColor = vec4(col, g*vAlpha); }`,
+    });
+    scene.add(new THREE.Points(nodeGeo, nodeMat));
+
+    const edgePairs = [];
+    for (let i = 0; i < EDGE_COUNT; i++) {
+      const a = Math.floor(Math.random()*NODE_COUNT);
+      let b = Math.floor(Math.random()*NODE_COUNT);
+      if (b===a) b = (a+1)%NODE_COUNT;
+      edgePairs.push(a, b);
+    }
+    const edgePositions = new Float32Array(EDGE_COUNT * 6);
+    const edgeGeo = new THREE.BufferGeometry();
+    edgeGeo.setAttribute('position', new THREE.BufferAttribute(edgePositions, 3));
+    const edgeMat = new THREE.LineBasicMaterial({ color: 0x00ddff, transparent: true, opacity: 0.04, blending: THREE.AdditiveBlending, depthWrite: false });
+    const edges = new THREE.LineSegments(edgeGeo, edgeMat);
+    scene.add(edges);
+
+    const PULSE_COUNT = 80;
+    const pulsePositions = new Float32Array(PULSE_COUNT * 3);
+    const pulseData = [];
+    for (let i = 0; i < PULSE_COUNT; i++) {
+      pulseData.push({ edge: Math.floor(Math.random()*EDGE_COUNT), t: Math.random(), speed: 0.002+Math.random()*0.005 });
+    }
+    const pulseGeo = new THREE.BufferGeometry();
+    pulseGeo.setAttribute('position', new THREE.BufferAttribute(pulsePositions, 3));
+    const pulseMat = new THREE.ShaderMaterial({
+      transparent: true, blending: THREE.AdditiveBlending, depthWrite: false,
+      vertexShader: `void main() { vec4 mv = modelViewMatrix*vec4(position,1.0); gl_PointSize=5.0/-mv.z; gl_Position=projectionMatrix*mv; }`,
+      fragmentShader: `void main() { float d=length(gl_PointCoord-0.5); if (d>0.5) discard;
+        float g=pow(1.0-d*2.0,3.5); gl_FragColor=vec4(0.0,0.87,1.0,g*0.8); }`,
+    });
+    scene.add(new THREE.Points(pulseGeo, pulseMat));
+
+    const clock = new THREE.Clock();
+    let glitch = 0;
+    function animate() {
+      requestAnimationFrame(animate);
+      const t = clock.getElapsedTime();
+      const dt = clock.getDelta();
+      nodeMat.uniforms.uTime.value = t;
+      const pos = nodeGeo.attributes.position.array;
+      for (let i = 0; i < NODE_COUNT; i++) {
+        const c = CLUSTERS[i % CLUSTERS.length];
+        for (let j = 0; j < 3; j++) {
+          const idx = i*3+j;
+          pos[idx] += velocities[idx] * Math.sin(t*0.3+phases[i]);
+          const center = [c.x, c.y, c.z][j];
+          if (Math.abs(pos[idx]-center) > c.r*1.2) velocities[idx] *= -0.8;
+        }
+      }
+      nodeGeo.attributes.position.needsUpdate = true;
+      const ePos = edgeGeo.attributes.position.array;
+      for (let i = 0; i < EDGE_COUNT; i++) {
+        const a = edgePairs[i*2], b = edgePairs[i*2+1];
+        for (let j = 0; j < 3; j++) {
+          ePos[i*6+j] = pos[a*3+j];
+          ePos[i*6+3+j] = pos[b*3+j];
+        }
+      }
+      edgeGeo.attributes.position.needsUpdate = true;
+      glitch += dt;
+      if (glitch > 3+Math.random()*4) {
+        edgeMat.opacity = 0.15+Math.random()*0.1;
+        setTimeout(() => { edgeMat.opacity = 0.04; }, 80+Math.random()*120);
+        glitch = 0;
+      }
+      const pPos = pulseGeo.attributes.position.array;
+      for (let i = 0; i < PULSE_COUNT; i++) {
+        const pd = pulseData[i];
+        pd.t += pd.speed;
+        if (pd.t > 1) { pd.t = 0; pd.edge = Math.floor(Math.random()*EDGE_COUNT); }
+        const a = edgePairs[pd.edge*2], b = edgePairs[pd.edge*2+1];
+        for (let j = 0; j < 3; j++) {
+          pPos[i*3+j] = pos[a*3+j] + (pos[b*3+j]-pos[a*3+j]) * pd.t;
+        }
+      }
+      pulseGeo.attributes.position.needsUpdate = true;
+      camera.position.x = Math.sin(t*0.04) * 0.6;
+      camera.position.y = Math.cos(t*0.025) * 0.4;
+      camera.lookAt(0, 0, 0);
+      renderer.render(scene, camera);
+    }
+    animate();
+    function resize() {
+      camera.aspect = innerWidth/innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(innerWidth, innerHeight, false);
+    }
+    addEventListener('resize', resize);
+    resize();
+  </script>
+</body>
+</html>

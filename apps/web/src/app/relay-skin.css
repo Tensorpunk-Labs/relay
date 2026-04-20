@@ -1,0 +1,671 @@
+/* ================================================================
+   RELAY SKIN — curated port of LatentSamplerJUCE reskin run 048
+   (helix refine). Tokens + primitives only. Renamed rs048- → rs-.
+   Used by the Relay Core dashboard.
+   ================================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap');
+
+:root {
+  /* Surfaces */
+  --rs-bg-primary:   #131418;
+  --rs-bg-topbar:    #191b1e;
+  --rs-bg-deep:      #0a0c10;
+  --rs-bg-recessed:  #0f1014;
+
+  /* Accents */
+  --rs-accent-lime:  #d4f500;
+  --rs-accent-cyan:  #00ddff;
+  --rs-accent-red:   #ff4d4d;
+  --rs-accent-amber: #f7b955;
+  --rs-accent-emerald: #4dffa3;
+  --rs-accent-purple:  #c084ff;
+
+  /* Text */
+  --rs-text:        rgba(255, 255, 255, 0.65);
+  --rs-text-strong: rgba(255, 255, 255, 0.85);
+  --rs-text-dim:    rgba(255, 255, 255, 0.30);
+  --rs-text-faint:  rgba(255, 255, 255, 0.18);
+
+  /* Structure */
+  --rs-separator:   rgba(255, 255, 255, 0.06);
+  --rs-hairline:    rgba(255, 255, 255, 0.10);
+  --rs-radius:      12px;
+  --rs-radius-sm:   8px;
+  --rs-spacing:     20px;
+
+  /* Type */
+  --rs-font-mono:   'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* Neumorphic shadows — tuned for #131418 */
+  --rs-shadow-raised:
+    6px 6px 16px 0 rgba(5, 6, 8, 0.92),
+    -6px -6px 16px 0 rgba(32, 34, 40, 0.55);
+  --rs-shadow-recessed:
+    inset 6px 6px 16px 0 rgba(5, 6, 8, 0.92),
+    inset -6px -6px 16px 0 rgba(32, 34, 40, 0.55);
+  --rs-shadow-raised-sm:
+    3px 3px 8px 0 rgba(5, 6, 8, 0.92),
+    -3px -3px 8px 0 rgba(32, 34, 40, 0.55);
+  --rs-shadow-raised-xs:
+    2px 2px 6px 0 rgba(5, 6, 8, 0.88),
+    -2px -2px 6px 0 rgba(32, 34, 40, 0.50);
+  --rs-shadow-raised-deep:
+    8px 8px 22px 0 rgba(3, 4, 6, 0.95),
+    -8px -8px 22px 0 rgba(36, 38, 44, 0.55);
+}
+
+/* ================================================================
+   GLOBAL DEFAULTS
+   ================================================================ */
+
+html {
+  background-color: var(--rs-bg-primary);
+}
+
+/* Global page background — waves.jpg as a fixed full-bleed layer
+   sitting on the body, with a subtle dark gradient on top to keep
+   cards readable. CoreShader (transparent canvas) sits over this
+   at -z-10; chrome sits on top of both. */
+body {
+  background:
+    linear-gradient(180deg, rgba(8, 10, 14, 0.20) 0%, rgba(8, 10, 14, 0.45) 100%),
+    url('/skin/waves.jpg') center center / cover no-repeat fixed;
+  color: var(--rs-text);
+  font-family: var(--rs-font-mono);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background: rgba(212, 245, 0, 0.35);
+  color: #fff;
+}
+
+/* ================================================================
+   VIEWPORT — page-level wrapper
+   ================================================================ */
+
+.rs-viewport {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--rs-spacing);
+  padding: 0 28px 28px;
+  max-width: 1440px;
+  margin: 0 auto;
+}
+
+/* ================================================================
+   TOPBAR
+   ================================================================ */
+
+.rs-topbar {
+  background: var(--rs-bg-topbar);
+  box-shadow:
+    0 6px 16px 0 rgba(5, 6, 8, 0.92),
+    0 -2px 8px 0 rgba(32, 34, 40, 0.30);
+  padding: 14px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  min-height: 68px;
+  margin-left: -28px;
+  margin-right: -28px;
+  margin-bottom: 8px;
+  gap: 14px;
+}
+
+.rs-topbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-shrink: 0;
+}
+
+.rs-brand-text {
+  font-family: var(--rs-font-mono);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: var(--rs-text);
+  white-space: nowrap;
+}
+
+.rs-topbar-center {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rs-topbar-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--rs-font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--rs-text);
+  flex-shrink: 0;
+}
+
+/* ================================================================
+   ZONE LABEL — "// SECTION NAME" with thin underline
+   ================================================================ */
+
+.rs-zone-label {
+  font-family: var(--rs-font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--rs-text);
+  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rs-zone-icon {
+  font-size: 12px;
+  line-height: 1;
+  opacity: 0.8;
+}
+
+.rs-label-separator {
+  height: 1px;
+  background: var(--rs-separator);
+  margin-top: 8px;
+  margin-bottom: 12px;
+  width: 60%;
+  max-width: 220px;
+}
+
+/* ================================================================
+   PANEL TREATMENTS
+   ================================================================ */
+
+.rs-panel-raised {
+  background: var(--rs-bg-primary);
+  border-radius: var(--rs-radius);
+  box-shadow: var(--rs-shadow-raised);
+  border: 1px solid transparent;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.rs-panel-raised-sm {
+  background: var(--rs-bg-primary);
+  border-radius: var(--rs-radius-sm);
+  box-shadow: var(--rs-shadow-raised-sm);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.rs-panel-recessed {
+  background: var(--rs-bg-primary);
+  border-radius: var(--rs-radius);
+  box-shadow: var(--rs-shadow-recessed);
+  padding: 14px 16px;
+  position: relative;
+}
+
+/* Interactive raised panel — subtle lift + white border + brightness pop on hover */
+.rs-panel-raised-interactive {
+  cursor: pointer;
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    border-color 0.18s ease,
+    filter 0.18s ease;
+}
+
+.rs-panel-raised-interactive:hover {
+  transform: translateY(-1px);
+  border-color: rgba(255, 255, 255, 0.18);
+  filter: brightness(1.10);
+  box-shadow:
+    7px 7px 18px 0 rgba(5, 6, 8, 0.95),
+    -7px -7px 18px 0 rgba(36, 38, 44, 0.60),
+    0 0 24px 0 rgba(212, 245, 0, 0.06);
+}
+
+/* ================================================================
+   IMAGE STACK — background-image hero with dark linear-gradient tint
+   ================================================================ */
+
+.rs-image-stack {
+  position: relative;
+  border-radius: var(--rs-radius);
+  overflow: hidden;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.04),
+    var(--rs-shadow-raised);
+  padding: 14px;
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  display: flex;
+  flex-direction: column;
+}
+
+.rs-image-stack[data-bg='ocean'] {
+  background-image: url('/skin/ocean_wave.jpg');
+}
+
+.rs-image-stack[data-bg='obsidian'] {
+  background-image: url('/skin/obsidian.jpg');
+}
+
+.rs-image-stack[data-bg='fx'] {
+  background-image: url('/skin/latent_fx_ob.png');
+}
+
+.rs-image-stack::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(8, 12, 18, 0.55) 0%, rgba(8, 12, 18, 0.78) 100%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.rs-image-stack > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* ================================================================
+   LIQUID GLASS — signature blurred card
+   ================================================================ */
+
+.rs-liquid-glass {
+  position: relative;
+  border-radius: var(--rs-radius);
+  background: rgba(8, 12, 22, 0.55);
+  backdrop-filter: blur(28px) saturate(150%);
+  -webkit-backdrop-filter: blur(28px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  box-shadow:
+    0 18px 36px rgba(0, 0, 0, 0.55),
+    0 8px 16px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.03);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.rs-liquid-glass::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 50%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, transparent 100%);
+  pointer-events: none;
+  border-radius: var(--rs-radius) var(--rs-radius) 0 0;
+}
+
+.rs-liquid-glass > * {
+  position: relative;
+  z-index: 1;
+}
+
+.rs-liquid-glass-row {
+  position: relative;
+  border-radius: var(--rs-radius-sm);
+  background: rgba(8, 12, 22, 0.45);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 8px 18px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.10);
+  padding: 12px 14px;
+  transition: border-color 0.18s ease, background 0.18s ease;
+}
+
+.rs-liquid-glass-row:hover {
+  background: rgba(10, 16, 28, 0.55);
+  border-color: rgba(0, 221, 255, 0.25);
+}
+
+.rs-liquid-glass-row-dim {
+  opacity: 0.55;
+}
+
+.rs-liquid-glass-row-dim:hover {
+  opacity: 1;
+}
+
+/* ================================================================
+   PILL — small uppercase mono badge
+   ================================================================ */
+
+.rs-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--rs-font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--rs-text);
+  border: 1px solid var(--rs-hairline);
+  border-radius: 3px;
+  padding: 3px 7px;
+  background: rgba(255, 255, 255, 0.025);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.rs-pill-lime {
+  color: var(--rs-accent-lime);
+  border-color: rgba(212, 245, 0, 0.40);
+  background: rgba(212, 245, 0, 0.06);
+}
+
+.rs-pill-lime-strong {
+  color: #0a0c10;
+  border-color: rgba(212, 245, 0, 0.85);
+  background: var(--rs-accent-lime);
+  font-weight: 700;
+}
+
+.rs-pill-cyan {
+  color: var(--rs-accent-cyan);
+  border-color: rgba(0, 221, 255, 0.40);
+  background: rgba(0, 221, 255, 0.06);
+}
+
+.rs-pill-amber {
+  color: var(--rs-accent-amber);
+  border-color: rgba(247, 185, 85, 0.40);
+  background: rgba(247, 185, 85, 0.06);
+}
+
+.rs-pill-purple {
+  color: var(--rs-accent-purple);
+  border-color: rgba(192, 132, 255, 0.40);
+  background: rgba(192, 132, 255, 0.06);
+}
+
+.rs-pill-emerald {
+  color: var(--rs-accent-emerald);
+  border-color: rgba(77, 255, 163, 0.40);
+  background: rgba(77, 255, 163, 0.06);
+}
+
+.rs-pill-red {
+  color: var(--rs-accent-red);
+  border-color: rgba(255, 77, 77, 0.40);
+  background: rgba(255, 77, 77, 0.06);
+}
+
+.rs-pill-dim {
+  color: var(--rs-text-dim);
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+/* ================================================================
+   BUTTON — neumorphic raised
+   ================================================================ */
+
+.rs-btn-raised {
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--rs-bg-primary);
+  border: none;
+  border-radius: 5px;
+  box-shadow: var(--rs-shadow-raised-xs);
+  font-family: var(--rs-font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--rs-text);
+  cursor: pointer;
+  padding: 0 12px;
+  transition: color 0.15s, box-shadow 0.15s;
+  white-space: nowrap;
+}
+
+.rs-btn-raised:hover {
+  color: var(--rs-text-strong);
+}
+
+.rs-btn-raised:active {
+  box-shadow: inset 2px 2px 6px rgba(5, 6, 8, 0.88), inset -2px -2px 6px rgba(32, 34, 40, 0.50);
+}
+
+.rs-btn-raised-active {
+  color: var(--rs-accent-lime);
+}
+
+/* ================================================================
+   LED — small glowing dot
+   ================================================================ */
+
+.rs-led {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--rs-text-dim);
+  flex-shrink: 0;
+  display: inline-block;
+}
+
+.rs-led-on {
+  background: var(--rs-accent-lime);
+  box-shadow:
+    0 0 8px rgba(212, 245, 0, 0.75),
+    inset 0 0 1px rgba(255, 255, 255, 0.4);
+  animation: rs-led-pulse 2.4s ease-in-out infinite;
+}
+
+.rs-led-cyan {
+  background: var(--rs-accent-cyan);
+  box-shadow: 0 0 8px rgba(0, 221, 255, 0.75), inset 0 0 1px rgba(255, 255, 255, 0.4);
+}
+
+.rs-led-emerald {
+  background: var(--rs-accent-emerald);
+  box-shadow: 0 0 6px rgba(77, 255, 163, 0.65);
+}
+
+.rs-led-amber {
+  background: var(--rs-accent-amber);
+  box-shadow: 0 0 6px rgba(247, 185, 85, 0.65);
+}
+
+.rs-led-purple {
+  background: var(--rs-accent-purple);
+  box-shadow: 0 0 6px rgba(192, 132, 255, 0.65);
+}
+
+.rs-led-red {
+  background: var(--rs-accent-red);
+  box-shadow: 0 0 6px rgba(255, 77, 77, 0.65);
+}
+
+.rs-led-sm {
+  width: 6px;
+  height: 6px;
+}
+
+.rs-led-lg {
+  width: 10px;
+  height: 10px;
+}
+
+@keyframes rs-led-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.55; }
+}
+
+/* ================================================================
+   DIVIDER
+   ================================================================ */
+
+.rs-divider {
+  height: 1px;
+  background: var(--rs-separator);
+  width: 100%;
+  border: none;
+  margin: 0;
+}
+
+.rs-divider-vert {
+  width: 1px;
+  align-self: stretch;
+  background: var(--rs-separator);
+  margin: 0 8px;
+}
+
+/* ================================================================
+   STAT TILE — used by StatsBar
+   ================================================================ */
+
+.rs-stat-tile {
+  background: var(--rs-bg-primary);
+  border-radius: var(--rs-radius);
+  box-shadow: var(--rs-shadow-raised);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 88px;
+  position: relative;
+  overflow: hidden;
+}
+
+.rs-stat-tile::after {
+  content: '';
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  bottom: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--rs-accent-lime), transparent);
+  opacity: 0.25;
+}
+
+.rs-stat-label {
+  font-family: var(--rs-font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+  color: var(--rs-text-dim);
+}
+
+.rs-stat-value {
+  font-family: var(--rs-font-mono);
+  font-size: 36px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--rs-accent-lime);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.rs-stat-sub {
+  font-family: var(--rs-font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: var(--rs-text-dim);
+}
+
+/* ================================================================
+   FOOTER
+   ================================================================ */
+
+.rs-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 4px;
+  margin-top: 8px;
+}
+
+.rs-footer-text {
+  font-family: var(--rs-font-mono);
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--rs-text-dim);
+}
+
+/* ================================================================
+   SCROLLBAR — minimal dark
+   ================================================================ */
+
+.rs-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.10) transparent;
+}
+
+.rs-scroll::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.rs-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.rs-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.10);
+  border-radius: 3px;
+}
+
+.rs-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 221, 255, 0.30);
+}
+
+/* ================================================================
+   UTILITY — text helpers (used sparingly; tailwind handles most)
+   ================================================================ */
+
+.rs-text-mono {
+  font-family: var(--rs-font-mono);
+}
+
+.rs-text-dim {
+  color: var(--rs-text-dim);
+}
+
+.rs-text-faint {
+  color: var(--rs-text-faint);
+}
+
+.rs-text-lime {
+  color: var(--rs-accent-lime);
+}
+
+.rs-text-cyan {
+  color: var(--rs-accent-cyan);
+}

@@ -1,0 +1,8 @@
+.vercel
+
+# Build artifacts from /protocol/_convert.mjs (one-shot script that
+# installs marked locally to render the spec). The generated index.html
+# is committed; the node_modules + lockfile are not.
+protocol/node_modules/
+protocol/package.json
+protocol/package-lock.json

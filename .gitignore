@@ -1,0 +1,25 @@
+node_modules/
+dist/
+
+# Environment files — explicit safety net. Ignore everything .env*, keep examples.
+.env
+.env.*
+!.env.example
+!.env.*.example
+!**/.env.example
+
+*.tsbuildinfo
+.vercel/
+.relay/
+.tmp-screens/
+benchmarks/longmemeval/data/*.json
+backups/
+
+# Local tooling state (per-machine, never committed).
+.claude/
+.superpowers/
+.worktrees/
+
+# Public export staging — produced by scripts/build-public-export.mjs.
+/relay-public-staging/
+scripts/public-export-templates/*.local.*

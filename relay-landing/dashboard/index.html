@@ -1,0 +1,1620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Relay Dashboard Preview — Context Flow Protocol</title>
+  <meta name="description" content="Preview the Relay context flow dashboard. See how context packages, live timeline, project cards, and the Context Cortex 3D graph look in practice. Mock data static preview.">
+  <meta name="keywords" content="Relay dashboard, AI memory dashboard, context flow, agentic protocol dashboard, context packages, Tensorpunk Labs">
+  <link rel="canonical" href="https://relaymemory.com/dashboard">
+
+  <meta property="og:title" content="Relay Dashboard Preview — Context Flow Protocol">
+  <meta property="og:description" content="Static preview of the Relay real-time context flow dashboard. Mock data. The real thing connects to your Supabase project and updates live.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://relaymemory.com/dashboard">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Relay Dashboard Preview">
+  <meta name="twitter:description" content="Real-time context flow dashboard for AI teams. 1,247 packages. 7 projects. Live timeline.">
+
+  <!-- AEO: FAQ schema -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "What does the Relay dashboard show?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "The Relay dashboard shows live context packages across all your projects, a 3D project graph (Context Cortex), flow metrics, project cards with package drill-down, and a live timeline of all deposits by agents and humans."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Is this dashboard included in the open-source version?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes. The Next.js dashboard is part of the open-source Relay repository. It connects to your own Supabase project and updates in real time via Supabase Realtime subscriptions."
+        }
+      }
+    ]
+  }
+  </script>
+
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%2300ddff'/><text x='50%25' y='56%25' text-anchor='middle' dominant-baseline='middle' font-family='JetBrains Mono,monospace' font-weight='700' font-size='20' fill='%23000'>R</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500;600;700&family=Jost:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      /* Landing page tokens */
+      --bg-primary: #0a0c10;
+      --bg-secondary: #131418;
+      --bg-card: #181a1f;
+      --border: #1e2028;
+      --text-primary: #ededed;
+      --text-secondary: #8a8d98;
+      --text-tertiary: #555860;
+      --cyan: #00ddff;
+      --cyan-dim: #0099bb;
+      --lime: #d4f500;
+      --neu-raised:
+        10px 10px 24px 0 rgba(2, 3, 5, 0.92),
+        -6px -6px 18px 0 rgba(30, 32, 40, 0.28);
+      --neu-inset:
+        inset 4px 4px 10px 0 rgba(2, 3, 5, 0.8),
+        inset -3px -3px 8px 0 rgba(30, 32, 40, 0.3);
+
+      /* Dashboard skin tokens (from relay-skin.css) */
+      --rs-bg-primary:   #131418;
+      --rs-bg-topbar:    #191b1e;
+      --rs-bg-deep:      #0a0c10;
+      --rs-bg-recessed:  #0f1014;
+      --rs-accent-lime:  #d4f500;
+      --rs-accent-cyan:  #00ddff;
+      --rs-accent-red:   #ff4d4d;
+      --rs-accent-amber: #f7b955;
+      --rs-accent-emerald: #4dffa3;
+      --rs-accent-purple:  #c084ff;
+      --rs-text:        rgba(255, 255, 255, 0.65);
+      --rs-text-strong: rgba(255, 255, 255, 0.85);
+      --rs-text-dim:    rgba(255, 255, 255, 0.30);
+      --rs-text-faint:  rgba(255, 255, 255, 0.18);
+      --rs-separator:   rgba(255, 255, 255, 0.06);
+      --rs-hairline:    rgba(255, 255, 255, 0.10);
+      --rs-radius:      12px;
+      --rs-radius-sm:   8px;
+      --rs-spacing:     20px;
+      --rs-font-mono:   'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+      --rs-shadow-raised:
+        6px 6px 16px 0 rgba(5, 6, 8, 0.92),
+        -6px -6px 16px 0 rgba(32, 34, 40, 0.55);
+      --rs-shadow-recessed:
+        inset 6px 6px 16px 0 rgba(5, 6, 8, 0.92),
+        inset -6px -6px 16px 0 rgba(32, 34, 40, 0.55);
+      --rs-shadow-raised-sm:
+        3px 3px 8px 0 rgba(5, 6, 8, 0.92),
+        -3px -3px 8px 0 rgba(32, 34, 40, 0.55);
+      --rs-shadow-raised-xs:
+        2px 2px 6px 0 rgba(5, 6, 8, 0.88),
+        -2px -2px 6px 0 rgba(32, 34, 40, 0.50);
+    }
+
+    html, body {
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: var(--rs-font-mono);
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    /* ── Background layers ── */
+    #bg-canvas { position: fixed; inset: 0; z-index: 0; display: block; }
+    .ambient {
+      position: fixed; inset: 0; z-index: 1; pointer-events: none;
+      background:
+        radial-gradient(ellipse 60% 50% at 25% 20%, rgba(0,221,255,0.06), transparent 60%),
+        radial-gradient(ellipse 50% 40% at 78% 82%, rgba(212,245,0,0.04), transparent 60%),
+        radial-gradient(ellipse 120% 100% at 50% 50%, transparent 40%, rgba(10,12,16,0.6) 100%);
+      mix-blend-mode: screen;
+    }
+    .grain {
+      position: fixed; inset: -50%; z-index: 2; pointer-events: none; opacity: 0.05;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='matrix' values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.6 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+    }
+
+    /* ── TOPBAR (landing-style) ── */
+    .topbar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      padding: 0 28px;
+      height: 60px;
+      display: flex; align-items: center; justify-content: space-between;
+      background: rgba(10,12,16,0.82);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+    .topbar-left {
+      display: flex; align-items: center; gap: 10px;
+    }
+    .mark {
+      display: inline-flex; align-items: center; gap: 10px;
+      text-decoration: none;
+    }
+    .mark-icon {
+      font-family: 'Jost', sans-serif;
+      font-weight: 700; font-size: 20px; color: var(--text-primary);
+    }
+    .mark-text {
+      font-family: var(--rs-font-mono);
+      font-size: 11px; font-weight: 600; color: var(--text-secondary);
+      letter-spacing: 2px; text-transform: uppercase;
+    }
+    .mark-text b { color: var(--text-primary); }
+
+    .topbar-nav {
+      display: flex; align-items: center; gap: 2px;
+    }
+    .nav-link {
+      font-family: var(--rs-font-mono);
+      font-size: 10px; font-weight: 500;
+      letter-spacing: 1.5px; text-transform: uppercase;
+      color: var(--text-secondary);
+      text-decoration: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      transition: color 0.15s, background 0.15s;
+    }
+    .nav-link:hover { color: var(--text-primary); background: rgba(255,255,255,0.04); }
+    .nav-link.active {
+      color: var(--cyan);
+      background: rgba(0,221,255,0.06);
+      border: 1px solid rgba(0,221,255,0.15);
+    }
+
+    .topbar-right {
+      display: flex; align-items: center; gap: 10px;
+    }
+    .live-demo-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 5px 12px; border-radius: 100px;
+      background: rgba(10,12,16,0.5);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(0,221,255,0.22);
+      font-family: var(--rs-font-mono);
+      font-size: 10px; color: var(--cyan);
+      letter-spacing: 1.5px; text-transform: uppercase;
+    }
+    .live-badge-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--cyan); box-shadow: 0 0 8px var(--cyan);
+      animation: blink 1.8s ease-in-out infinite;
+    }
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.35; }
+    }
+    .mock-tag {
+      font-family: var(--rs-font-mono);
+      font-size: 9px; font-weight: 700;
+      letter-spacing: 1.5px; text-transform: uppercase;
+      padding: 4px 10px; border-radius: 4px;
+      background: rgba(247,185,85,0.15);
+      color: var(--rs-accent-amber);
+      border: 1px solid rgba(247,185,85,0.3);
+    }
+
+    /* ── MOCK DATA BANNER ── */
+    .mock-banner {
+      position: relative; z-index: 10;
+      margin-top: 60px;
+      background: rgba(247,185,85,0.08);
+      border-bottom: 1px solid rgba(247,185,85,0.2);
+      padding: 10px 28px;
+      display: flex; align-items: center; justify-content: center; gap: 12px;
+      font-family: var(--rs-font-mono);
+      font-size: 10px; letter-spacing: 1.2px; text-transform: uppercase;
+      color: var(--rs-accent-amber);
+    }
+    .mock-banner-icon { font-size: 12px; }
+
+    /* ── PAGE WRAPPER ── */
+    .page {
+      position: relative; z-index: 10;
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 24px 28px 60px;
+    }
+
+    /* ── HERO SECTION ── */
+    .hero {
+      padding: 32px 0 28px;
+      display: flex; flex-direction: column; align-items: center;
+      text-align: center; gap: 12px;
+    }
+    .hero-eyebrow {
+      font-family: var(--rs-font-mono);
+      font-size: 10px; font-weight: 500;
+      letter-spacing: 3px; text-transform: uppercase;
+      color: var(--cyan); opacity: 0.8;
+    }
+    .hero-title {
+      font-family: 'Jost', sans-serif;
+      font-size: clamp(32px, 5vw, 56px);
+      font-weight: 800; letter-spacing: 0.02em;
+      background: linear-gradient(180deg, #ffffff 0%, #63676f 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1;
+    }
+    .hero-sub {
+      font-size: 13px; color: var(--text-secondary);
+      max-width: 560px; line-height: 1.7;
+    }
+    .hero-divider {
+      width: 80px; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--cyan) 50%, transparent);
+      opacity: 0.6; margin: 4px auto;
+    }
+
+    /* ── ZONE LABEL ── */
+    .zone-label {
+      font-family: var(--rs-font-mono);
+      font-size: 10px; font-weight: 500;
+      letter-spacing: 2px; text-transform: uppercase;
+      color: var(--rs-text);
+      display: flex; align-items: center; gap: 6px;
+      user-select: none;
+    }
+    .zone-icon { font-size: 12px; line-height: 1; opacity: 0.8; }
+    .label-sep {
+      height: 1px;
+      background: var(--rs-separator);
+      margin: 8px 0 14px;
+      width: 60%; max-width: 220px;
+    }
+
+    /* ── DASHBOARD SECTION ── */
+    .dash-section {
+      margin-bottom: 24px;
+    }
+
+    /* ── STATS BAR ── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 12px;
+    }
+    .stat-tile {
+      background: var(--rs-bg-primary);
+      border-radius: var(--rs-radius);
+      box-shadow: var(--rs-shadow-raised);
+      padding: 16px 18px;
+      display: flex; flex-direction: column; gap: 6px;
+      min-height: 88px;
+      position: relative; overflow: hidden;
+    }
+    .stat-tile::after {
+      content: '';
+      position: absolute;
+      left: 18px; right: 18px; bottom: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--rs-accent-lime), transparent);
+      opacity: 0.2;
+    }
+    .stat-label {
+      font-family: var(--rs-font-mono);
+      font-size: 8px; font-weight: 500;
+      letter-spacing: 1.6px; text-transform: uppercase;
+      color: var(--rs-text-dim);
+    }
+    .stat-value {
+      font-family: var(--rs-font-mono);
+      font-size: 30px; font-weight: 600;
+      letter-spacing: -0.02em;
+      color: var(--rs-accent-lime);
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+    .stat-value.cyan { color: var(--rs-accent-cyan); }
+    .stat-sub {
+      font-family: var(--rs-font-mono);
+      font-size: 8px; font-weight: 500;
+      letter-spacing: 1.4px; text-transform: uppercase;
+      color: var(--rs-text-dim);
+    }
+
+    /* ── META CONTROLS ── */
+    .meta-controls {
+      position: relative;
+      border-radius: var(--rs-radius);
+      background: rgba(8, 12, 22, 0.55);
+      backdrop-filter: blur(28px) saturate(150%);
+      border: 1px solid rgba(255,255,255,0.10);
+      box-shadow:
+        0 18px 36px rgba(0,0,0,0.55),
+        0 8px 16px rgba(0,0,0,0.35),
+        inset 0 1px 0 rgba(255,255,255,0.14);
+      padding: 12px 18px;
+    }
+    .meta-controls-inner {
+      display: flex; align-items: center; gap: 16px; margin-top: 8px;
+    }
+    .meta-label-sm {
+      font-family: var(--rs-font-mono);
+      font-size: 7px; font-weight: 500;
+      letter-spacing: 1.2px; text-transform: uppercase;
+      color: var(--rs-accent-cyan); white-space: nowrap;
+    }
+    .slider-track {
+      flex: 1;
+      height: 3px;
+      border-radius: 2px;
+      background: linear-gradient(90deg, var(--rs-accent-lime) 0%, var(--rs-accent-cyan) 55%, rgba(0,221,255,0.2) 100%);
+      position: relative;
+    }
+    .slider-thumb {
+      position: absolute;
+      top: 50%; transform: translateY(-50%);
+      left: calc(14/57 * 100% - 5px);
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: var(--rs-accent-lime);
+      box-shadow: 0 0 8px rgba(212,245,0,0.5);
+    }
+    .slider-value {
+      font-family: var(--rs-font-mono);
+      font-size: 16px; font-weight: 700;
+      color: var(--rs-accent-lime);
+      min-width: 36px; text-align: right;
+    }
+    .sep-vert {
+      width: 1px; height: 24px;
+      background: var(--rs-separator);
+    }
+    .preset-pills {
+      display: flex; gap: 4px;
+    }
+    .preset-pill {
+      font-family: var(--rs-font-mono);
+      font-size: 8px; font-weight: 500;
+      letter-spacing: 1.2px; text-transform: uppercase;
+      padding: 3px 9px; border-radius: 3px;
+      border: 1px solid var(--rs-hairline);
+      color: var(--rs-text);
+      background: rgba(255,255,255,0.025);
+    }
+    .preset-pill.active {
+      color: var(--rs-accent-lime);
+      border-color: rgba(212,245,0,0.4);
+      background: rgba(212,245,0,0.06);
+    }
+
+    /* ── CONTEXT CORTEX ── */
+    .cortex-panel {
+      position: relative;
+      border-radius: var(--rs-radius);
+      background: rgba(8, 12, 22, 0.55);
+      backdrop-filter: blur(28px) saturate(150%);
+      border: 1px solid rgba(255,255,255,0.10);
+      box-shadow:
+        0 18px 36px rgba(0,0,0,0.55),
+        0 8px 16px rgba(0,0,0,0.35),
+        inset 0 1px 0 rgba(255,255,255,0.14);
+      padding: 14px 18px;
+      overflow: hidden;
+    }
+    .cortex-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .cortex-note {
+      font-family: var(--rs-font-mono);
+      font-size: 8px; letter-spacing: 1.6px; text-transform: uppercase;
+      color: var(--rs-text-faint);
+    }
+    .cortex-canvas-wrap {
+      position: relative;
+      width: 100%; height: 440px;
+      border-radius: 8px; overflow: hidden;
+    }
+    #cortex-canvas { width: 100%; height: 100%; display: block; }
+
+    /* Project label nodes overlaid on cortex */
+    .cortex-overlay {
+      position: absolute; inset: 0; pointer-events: none;
+    }
+    .cortex-node-label {
+      position: absolute;
+      font-family: var(--rs-font-mono);
+      font-size: 9px; font-weight: 600;
+      letter-spacing: 1.2px; text-transform: uppercase;
+      padding: 4px 10px; border-radius: 4px;
+      border: 1px solid rgba(0,221,255,0.3);
+      background: rgba(8,12,22,0.75);
+      backdrop-filter: blur(8px);
+      color: var(--rs-accent-cyan);
+      white-space: nowrap;
+    }
+    .cortex-node-label.lime {
+      color: var(--rs-accent-lime);
+      border-color: rgba(212,245,0,0.3);
+    }
+    .cortex-node-label.dim {
+      color: var(--rs-text-dim);
+      border-color: rgba(255,255,255,0.1);
+    }
+    .interactive-note {
+      position: absolute;
+      bottom: 14px; left: 50%; transform: translateX(-50%);
+      font-family: var(--rs-font-mono);
+      font-size: 9px; letter-spacing: 1px; text-transform: uppercase;
+      color: var(--rs-text-faint);
+      background: rgba(8,12,22,0.7);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,0.06);
+      padding: 5px 14px; border-radius: 100px;
+      white-space: nowrap;
+    }
+
+    /* ── PROJECT CARDS ── */
+    .projects-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+    .project-card {
+      background: var(--rs-bg-primary);
+      border-radius: var(--rs-radius);
+      box-shadow: var(--rs-shadow-raised);
+      border: 1px solid transparent;
+      padding: 18px 20px;
+      display: flex; flex-direction: column;
+    }
+    .project-card-title {
+      font-family: var(--rs-font-mono);
+      font-size: 12px; font-weight: 600;
+      color: var(--rs-accent-lime);
+      margin-bottom: 4px;
+      truncate: clip;
+    }
+    .project-card-id {
+      font-family: var(--rs-font-mono);
+      font-size: 8px; color: var(--rs-text-faint);
+      margin-bottom: 8px;
+    }
+    .project-card-desc {
+      font-family: var(--rs-font-mono);
+      font-size: 10px; color: rgba(255,255,255,0.5);
+      line-height: 1.5; margin-bottom: 12px;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .project-pills {
+      display: flex; flex-wrap: wrap; gap: 5px;
+      margin-bottom: 14px;
+    }
+    .project-divider {
+      height: 1px; background: var(--rs-separator);
+      margin-bottom: 12px;
+    }
+    .project-recents { display: flex; flex-direction: column; gap: 7px; }
+    .project-recent-row {
+      display: flex; align-items: center; gap: 8px;
+    }
+    .project-recent-title {
+      font-family: var(--rs-font-mono);
+      font-size: 10px; color: rgba(255,255,255,0.7);
+      flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .project-recent-time {
+      font-family: var(--rs-font-mono);
+      font-size: 9px; color: var(--rs-text-faint);
+    }
+    .project-more {
+      font-family: var(--rs-font-mono);
+      font-size: 9px; color: var(--rs-text-faint);
+      padding-left: 14px; margin-top: 2px;
+    }
+
+    /* ── LED ── */
+    .led {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--rs-text-dim);
+      flex-shrink: 0; display: inline-block;
+    }
+    .led.on {
+      background: var(--rs-accent-lime);
+      box-shadow: 0 0 8px rgba(212,245,0,0.75);
+      animation: led-pulse 2.4s ease-in-out infinite;
+    }
+    .led.emerald {
+      background: var(--rs-accent-emerald);
+      box-shadow: 0 0 6px rgba(77,255,163,0.65);
+    }
+    .led.amber {
+      background: var(--rs-accent-amber);
+      box-shadow: 0 0 6px rgba(247,185,85,0.65);
+    }
+    .led.cyan {
+      background: var(--rs-accent-cyan);
+      box-shadow: 0 0 6px rgba(0,221,255,0.65);
+    }
+    @keyframes led-pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    /* ── PILL ── */
+    .pill {
+      display: inline-flex; align-items: center;
+      font-family: var(--rs-font-mono);
+      font-size: 8px; font-weight: 500;
+      letter-spacing: 1.2px; text-transform: uppercase;
+      color: var(--rs-text);
+      border: 1px solid var(--rs-hairline);
+      border-radius: 3px; padding: 3px 7px;
+      background: rgba(255,255,255,0.025);
+      white-space: nowrap; flex-shrink: 0;
+    }
+    .pill.lime {
+      color: var(--rs-accent-lime);
+      border-color: rgba(212,245,0,0.4);
+      background: rgba(212,245,0,0.06);
+    }
+    .pill.lime-strong {
+      color: #0a0c10;
+      border-color: rgba(212,245,0,0.85);
+      background: var(--rs-accent-lime);
+      font-weight: 700;
+    }
+    .pill.cyan {
+      color: var(--rs-accent-cyan);
+      border-color: rgba(0,221,255,0.4);
+      background: rgba(0,221,255,0.06);
+    }
+    .pill.amber {
+      color: var(--rs-accent-amber);
+      border-color: rgba(247,185,85,0.4);
+      background: rgba(247,185,85,0.06);
+    }
+    .pill.emerald {
+      color: var(--rs-accent-emerald);
+      border-color: rgba(77,255,163,0.4);
+      background: rgba(77,255,163,0.06);
+    }
+    .pill.dim {
+      color: var(--rs-text-dim);
+      border-color: rgba(255,255,255,0.06);
+    }
+
+    /* ── TIMELINE ── */
+    .timeline-wrap {
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .timeline-row {
+      position: relative;
+      border-radius: var(--rs-radius-sm);
+      background: rgba(8, 12, 22, 0.45);
+      backdrop-filter: blur(20px) saturate(140%);
+      border: 1px solid rgba(255,255,255,0.08);
+      box-shadow: 0 8px 18px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.10);
+      padding: 12px 14px;
+    }
+    .tl-inner { display: flex; align-items: flex-start; gap: 12px; }
+    .tl-led-col {
+      display: flex; flex-direction: column; align-items: center; margin-top: 2px;
+    }
+    .tl-led-line {
+      width: 1px; background: var(--rs-separator);
+      min-height: 16px; margin-top: 4px; flex: 1;
+    }
+    .tl-body { flex: 1; min-width: 0; }
+    .tl-header {
+      display: flex; align-items: center; gap: 8px; margin-bottom: 4px;
+    }
+    .tl-title {
+      font-family: var(--rs-font-mono);
+      font-size: 11px; font-weight: 500;
+      color: rgba(255,255,255,0.85);
+      flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .tl-time {
+      font-family: var(--rs-font-mono);
+      font-size: 9px; color: var(--rs-text-faint);
+      white-space: nowrap;
+    }
+    .tl-meta {
+      display: flex; align-items: center; gap: 6px;
+      flex-wrap: wrap;
+      font-family: var(--rs-font-mono);
+      font-size: 9px; color: var(--rs-text-dim);
+    }
+    .tl-dot { color: var(--rs-text-faint); }
+    .tl-handoff {
+      margin-top: 8px;
+      border-radius: 4px;
+      padding: 6px 10px;
+      background: rgba(0,221,255,0.08);
+      border: 1px solid rgba(0,221,255,0.2);
+      font-family: var(--rs-font-mono);
+      font-size: 10px;
+      color: rgba(0,221,255,0.85);
+      line-height: 1.5;
+    }
+
+    /* ── ACTIVE FACTS PANEL ── */
+    .facts-panel {
+      background: var(--rs-bg-primary);
+      border-radius: var(--rs-radius);
+      box-shadow: var(--rs-shadow-raised);
+      padding: 18px 20px;
+    }
+    .facts-list { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+    .fact-row {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 8px 10px; border-radius: 6px;
+      background: rgba(0,221,255,0.04);
+      border: 1px solid rgba(0,221,255,0.1);
+    }
+    .fact-subject {
+      font-family: var(--rs-font-mono);
+      font-size: 9px; font-weight: 600;
+      color: var(--rs-accent-cyan);
+      white-space: nowrap; min-width: 120px;
+    }
+    .fact-predicate {
+      font-family: var(--rs-font-mono);
+      font-size: 9px; color: var(--rs-text-dim);
+      white-space: nowrap;
+    }
+    .fact-object {
+      font-family: var(--rs-font-mono);
+      font-size: 9px; color: var(--rs-accent-lime);
+      flex: 1;
+    }
+
+    /* ── TWO-COL LAYOUT ── */
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      gap: 16px;
+      align-items: start;
+    }
+
+    /* ── GITHUB CTA ── */
+    .github-cta {
+      display: flex; align-items: center; justify-content: center;
+      gap: 16px; flex-wrap: wrap;
+      margin-top: 40px;
+      padding: 24px;
+      border-radius: var(--rs-radius);
+      border: 1px solid rgba(255,255,255,0.06);
+      background: rgba(19,20,24,0.5);
+      text-align: center;
+    }
+    .github-cta-text {
+      font-family: var(--rs-font-mono);
+      font-size: 11px; color: var(--text-secondary);
+      letter-spacing: 1.5px; text-transform: uppercase;
+    }
+    .cta-btn {
+      padding: 12px 24px; border-radius: 8px;
+      font-family: var(--rs-font-mono);
+      font-size: 12px; font-weight: 600;
+      letter-spacing: 1px; text-transform: uppercase;
+      text-decoration: none; cursor: pointer;
+      transition: all 0.15s;
+    }
+    .cta-primary {
+      background: var(--cyan); color: #000;
+      box-shadow: 0 0 20px rgba(0,221,255,0.2);
+    }
+    .cta-primary:hover { background: #33e5ff; }
+    .cta-secondary {
+      background: transparent; color: var(--text-primary);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .cta-secondary:hover { border-color: var(--cyan); color: var(--cyan); }
+
+    /* ── FOOTER ── */
+    .page-footer {
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 12px;
+      margin-top: 48px;
+      padding-top: 20px;
+      border-top: 1px solid rgba(255,255,255,0.03);
+      font-family: var(--rs-font-mono);
+      font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase;
+      color: var(--rs-text-dim);
+    }
+    .page-footer a { color: var(--text-secondary); text-decoration: none; }
+    .page-footer a:hover { color: var(--cyan); }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 1024px) {
+      .stats-grid { grid-template-columns: repeat(3, 1fr); }
+      .projects-grid { grid-template-columns: repeat(2, 1fr); }
+      .two-col { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 768px) {
+      .topbar { padding: 0 16px; }
+      .topbar-nav { display: none; }
+      .page { padding: 20px 16px 48px; }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .projects-grid { grid-template-columns: 1fr; }
+      .cortex-canvas-wrap { height: 300px; }
+    }
+  </style>
+</head>
+<body>
+
+  <canvas id="bg-canvas"></canvas>
+  <div class="ambient"></div>
+  <div class="grain"></div>
+
+  <!-- ── TOPBAR ── -->
+  <nav class="topbar">
+    <div class="topbar-left">
+      <a href="https://tensorpunklabs.com" target="_blank" class="mark">
+        <div class="mark-icon">&Oslash;</div>
+        <div class="mark-text"><b>Tensorpunk</b> &nbsp;Labs &nbsp;<span style="color:var(--cyan);">// RELAY</span></div>
+      </a>
+    </div>
+
+    <nav class="topbar-nav">
+      <a href="/" class="nav-link">Home</a>
+      <a href="/setup" class="nav-link">Setup</a>
+      <a href="/cli" class="nav-link">CLI</a>
+      <a href="/docs" class="nav-link">Docs</a>
+      <a href="/dashboard" class="nav-link active">Dashboard Preview</a>
+    </nav>
+
+    <div class="topbar-right">
+      <span class="mock-tag">Mock Data</span>
+      <div class="live-demo-badge">
+        <span class="live-badge-dot"></span>
+        <span>Live Demo</span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ── MOCK DATA BANNER ── -->
+  <div class="mock-banner">
+    <span class="mock-banner-icon">&#9888;</span>
+    <span>Static preview &mdash; mock data only. The real dashboard connects to your Supabase project and updates live via realtime subscriptions.</span>
+  </div>
+
+  <!-- ── PAGE ── -->
+  <div class="page">
+
+    <!-- HERO -->
+    <div class="hero">
+      <div class="hero-eyebrow">&lt;&lt; // dashboard preview // &gt;&gt;</div>
+      <h1 class="hero-title">Relay Dashboard</h1>
+      <div class="hero-divider"></div>
+      <p class="hero-sub">
+        See your context flow in real time. Packages, facts, sessions, and the Context Cortex 3D graph &mdash; all connected via live Supabase subscriptions.
+      </p>
+    </div>
+
+    <!-- ── FLOW METRICS ── -->
+    <div class="dash-section">
+      <div class="zone-label">
+        <span class="zone-icon">&#9636;</span>
+        Flow Metrics
+      </div>
+      <div class="label-sep"></div>
+
+      <div class="stats-grid">
+        <div class="stat-tile">
+          <div class="stat-label">Context Packages</div>
+          <div class="stat-value">1,247</div>
+          <div class="stat-sub">Total</div>
+        </div>
+        <div class="stat-tile">
+          <div class="stat-label">Key Packages</div>
+          <div class="stat-value">89</div>
+          <div class="stat-sub">Sig &ge; 9</div>
+        </div>
+        <div class="stat-tile">
+          <div class="stat-label">Active Facts</div>
+          <div class="stat-value cyan">23</div>
+          <div class="stat-sub">Current Truth</div>
+        </div>
+        <div class="stat-tile">
+          <div class="stat-label">Projects</div>
+          <div class="stat-value">7</div>
+          <div class="stat-sub">Active</div>
+        </div>
+        <div class="stat-tile">
+          <div class="stat-label">Sessions</div>
+          <div class="stat-value">142</div>
+          <div class="stat-sub">Tracked</div>
+        </div>
+        <div class="stat-tile">
+          <div class="stat-label">Last 24h</div>
+          <div class="stat-value cyan">18</div>
+          <div class="stat-sub">Packages</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── META CONTROLS ── -->
+    <div class="dash-section">
+      <div class="meta-controls">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:2px;">
+          <div class="zone-label" style="margin:0;">
+            <span class="zone-icon">&#9671;</span>
+            Meta Controls
+          </div>
+        </div>
+        <div class="meta-controls-inner">
+          <span class="meta-label-sm">Orient Window</span>
+          <div style="flex:1; position:relative; display:flex; align-items:center; gap:12px;">
+            <div class="slider-track" style="flex:1;">
+              <div class="slider-thumb"></div>
+            </div>
+            <span class="slider-value">14d</span>
+          </div>
+          <div class="sep-vert"></div>
+          <div class="preset-pills">
+            <span class="preset-pill">7d</span>
+            <span class="preset-pill active">14d</span>
+            <span class="preset-pill">30d</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── CONTEXT CORTEX ── -->
+    <div class="dash-section">
+      <div class="zone-label">
+        <span class="zone-icon">&#9671;</span>
+        Context Cortex
+      </div>
+      <div class="label-sep"></div>
+
+      <div class="cortex-panel">
+        <div class="cortex-header">
+          <span class="zone-label" style="font-size:9px;">
+            <span class="led on" style="width:6px;height:6px;"></span>
+            3D Project Graph &middot; Click to Drill
+          </span>
+          <span class="cortex-note">Live in production &mdash; interactive WebGL</span>
+        </div>
+
+        <div class="cortex-canvas-wrap">
+          <canvas id="cortex-canvas"></canvas>
+          <!-- Project node labels -->
+          <div class="cortex-overlay">
+            <div class="cortex-node-label lime" style="top:18%; left:14%;">Fleet Ops</div>
+            <div class="cortex-node-label" style="top:52%; left:62%;">Cargo Routing</div>
+            <div class="cortex-node-label dim" style="top:32%; left:72%;">Docking Bays</div>
+            <div class="cortex-node-label dim" style="top:70%; left:20%;">Customer Relations</div>
+            <div class="cortex-node-label dim" style="top:15%; left:50%;">Nav Systems</div>
+            <div class="cortex-node-label" style="top:78%; left:55%;">Crew Ops</div>
+          </div>
+          <div class="interactive-note">&#9675; In production this is interactive &mdash; click nodes to expand project packages</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── ACTIVE PROJECTS ── -->
+    <div class="dash-section">
+      <div class="zone-label">
+        <span class="zone-icon">&#9672;</span>
+        Active Projects
+      </div>
+      <div class="label-sep"></div>
+
+      <div class="projects-grid">
+
+        <!-- Fleet Operations -->
+        <div class="project-card">
+          <div class="project-card-title">Fleet Operations</div>
+          <div class="project-card-id">proj_fleet_ops</div>
+          <div class="project-card-desc">Interstellar freight fleet coordination. Vessel health, route clearances, and deep-space relay station status across the Outer Belt corridor.</div>
+          <div class="project-pills">
+            <span class="pill cyan">156 PKG</span>
+            <span class="pill lime">3 Sessions</span>
+            <span class="pill lime-strong">8 KEY</span>
+            <span class="pill dim">multi-vessel</span>
+            <span class="pill emerald">nominal</span>
+          </div>
+          <div class="project-divider"></div>
+          <div class="project-recents">
+            <div class="project-recent-row">
+              <span class="led emerald"></span>
+              <span class="project-recent-title">Friday dispatch plan locked: 7 freighters, Kepler-62 corridor</span>
+              <span class="project-recent-time">12m</span>
+            </div>
+            <div class="project-recent-row">
+              <span class="led emerald"></span>
+              <span class="project-recent-title">Meridian-IV docking clearance approved at Ceres Hub</span>
+              <span class="project-recent-time">7d</span>
+            </div>
+            <div class="project-recent-row">
+              <span class="led amber"></span>
+              <span class="project-recent-title">Hyperdrive coolant refresh completed — all vessels green</span>
+              <span class="project-recent-time">8d</span>
+            </div>
+            <div class="project-more">+153 more</div>
+          </div>
+        </div>
+
+        <!-- Cargo Routing -->
+        <div class="project-card">
+          <div class="project-card-title">Cargo Routing</div>
+          <div class="project-card-id">proj_cargo_routing</div>
+          <div class="project-card-desc">AI-optimized multi-hop freight routing through asteroid belt waypoints. Dynamic rerouting when solar flares disrupt relay towers.</div>
+          <div class="project-pills">
+            <span class="pill cyan">89 PKG</span>
+            <span class="pill lime">1 Session</span>
+            <span class="pill lime-strong">4 KEY</span>
+            <span class="pill dim">path-optimization</span>
+            <span class="pill dim">flare-contingency</span>
+          </div>
+          <div class="project-divider"></div>
+          <div class="project-recents">
+            <div class="project-recent-row">
+              <span class="led emerald"></span>
+              <span class="project-recent-title">Rare-earth haul rerouted around Vega-3 debris field</span>
+              <span class="project-recent-time">2d</span>
+            </div>
+            <div class="project-recent-row">
+              <span class="led emerald"></span>
+              <span class="project-recent-title">Contract renewed with Titan Mining Consortium</span>
+              <span class="project-recent-time">5d</span>
+            </div>
+            <div class="project-recent-row">
+              <span class="led amber"></span>
+              <span class="project-recent-title">Fuel cell efficiency optimization — 7.3% savings</span>
+              <span class="project-recent-time">9d</span>
+            </div>
+            <div class="project-more">+86 more</div>
+          </div>
+        </div>
+
+        <!-- Customer Relations -->
+        <div class="project-card">
+          <div class="project-card-title">Customer Relations</div>
+          <div class="project-card-id">proj_customer_relations</div>
+          <div class="project-card-desc">Client briefings, shipment escalations, and contract coordination for Orion-Arm trade partners. Human + AI coordination on account handling.</div>
+          <div class="project-pills">
+            <span class="pill cyan">42 PKG</span>
+            <span class="pill dim">0 Sessions</span>
+            <span class="pill lime-strong">2 KEY</span>
+            <span class="pill dim">accounts</span>
+            <span class="pill dim">escalations</span>
+          </div>
+          <div class="project-divider"></div>
+          <div class="project-recents">
+            <div class="project-recent-row">
+              <span class="led emerald"></span>
+              <span class="project-recent-title">Ganymede Biotech — quarterly briefing prepared</span>
+              <span class="project-recent-time">3d</span>
+            </div>
+            <div class="project-recent-row">
+              <span class="led emerald"></span>
+              <span class="project-recent-title">Pricing tier approved for Deep Range shipments</span>
+              <span class="project-recent-time">6d</span>
+            </div>
+            <div class="project-recent-row">
+              <span class="led" style="background:var(--rs-text-dim);"></span>
+              <span class="project-recent-title">New partner onboarding — Europa Hydroponics</span>
+              <span class="project-recent-time">12d</span>
+            </div>
+            <div class="project-more">+39 more</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ── LIVE TIMELINE + ACTIVE FACTS ── -->
+    <div class="dash-section">
+      <div class="two-col">
+
+        <!-- Timeline -->
+        <div>
+          <div class="zone-label">
+            <span class="zone-icon">&#8767;</span>
+            Live Timeline
+          </div>
+          <div class="label-sep"></div>
+
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+            <span class="zone-label" style="font-size:9px;">
+              <span class="led on" style="width:6px;height:6px;"></span>
+              Stream &middot; 7 Packages shown
+              <span style="font-size:9px; color:var(--rs-text-faint); margin-left:6px;">(+1,240 auto hidden)</span>
+            </span>
+            <span style="font-family:var(--rs-font-mono); font-size:8px; color:var(--rs-text-faint); letter-spacing:1px; text-transform:uppercase;">Newest First</span>
+          </div>
+
+          <div class="timeline-wrap">
+
+            <!-- Entry 1 -->
+            <div class="timeline-row">
+              <div class="tl-inner">
+                <div class="tl-led-col">
+                  <span class="led emerald"></span>
+                  <div class="tl-led-line"></div>
+                </div>
+                <div class="tl-body">
+                  <div class="tl-header">
+                    <span class="pill lime-strong">KEY 10</span>
+                    <span class="tl-title">Weekend dispatch plan locked: 7 freighters, Kepler-62 corridor</span>
+                    <span class="tl-time">12m ago</span>
+                  </div>
+                  <div class="tl-meta">
+                    <span>&#129302; routing-agent</span>
+                    <span class="tl-dot">&middot;</span>
+                    <span style="text-transform:uppercase; letter-spacing:1px;">FLEET OPS</span>
+                    <span class="tl-dot">&middot;</span>
+                    <span class="pill cyan">dispatch</span>
+                    <span class="tl-dot">&middot;</span>
+                    <span class="pill emerald">complete</span>
+                  </div>
+                  <div class="tl-handoff">&#8618; Next shift: crew rotation for Meridian-IV. Refueling window at Ceres Hub locked for 0600 UTC. Flare warning expires Sunday.</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Entry 2 -->
+            <div class="timeline-row">
+              <div class="tl-inner">
+                <div class="tl-led-col">
+                  <span class="led emerald"></span>
+                  <div class="tl-led-line"></div>
+                </div>
+                <div class="tl-body">
+                  <div class="tl-header">
+                    <span class="pill lime-strong">KEY 9</span>
+                    <span class="tl-title">Quarterly freight margin analysis &mdash; Outer Belt corridor</span>
+                    <span class="tl-time">4h ago</span>
+                  </div>
+                  <div class="tl-meta">
+                    <span>&#129302; ops-agent</span>
+                    <span class="tl-dot">&middot;</span>
+                    <span style="text-transform:uppercase; letter-spacing:1px;">CARGO ROUTING</span>
+                    <span class="tl-dot">&middot;</span>
+                    <span class="pill cyan">analysis</span>
+                    <span class="tl-dot">&middot;</span>
+                    <span class="pill emerald">complete</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Entry 3 -->
+            <div class="timeline-row">
+              <div class="tl-inner">
+                <div class="tl-led-col">
+                  <span class="led cyan"></span>
+                  <div class="tl-led-line"></div>
+                </div>
+                <div class="tl-body">
+                  <div class="tl-header">
+                    <span class="pill cyan">SIG 7</span>
+                    <span class="tl-title">Client escalation: Titan Mining late delivery penalty waiver</span>
+                    <span class="tl-time">1d ago</span>
+                  </div>
+                  <div class="tl-meta">
+                    <span>&#129473; dispatch-lead</span>
+                    <span class="tl-dot">&middot;</span>
+                    <span style="text-transform:uppercase; letter-spacing:1px;">CUSTOMER RELATIONS</span>
+                    <span class="tl-dot">&middot;</span>
+                    <span class="pill cyan">escalation</span>
+                    <span class="tl-dot">&middot;</span>
+                    <span class="pill emerald">resolved</span>
+                  </div>
+                  <div class="tl-handoff">&#8618; Waiver approved pending evidence of solar flare disruption. Legal agent drafting addendum. Partner retention is priority one.</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Entry 4 -->
+            <div class="timeline-row">
+              <div class="tl-inner">
+                <div class="tl-led-col">
+                  <span class="led emerald"></span>
+                  <div class="tl-led-line"></div>
+                </div>
+                <div class="tl-body">
+                  <div class="tl-header">
+                    <span class="pill lime-strong">KEY 10</span>
+                    <span class="tl-title">First deep-range haul to Proxima station &mdash; on time, nominal</span>
+                    <span class="tl-time">7d ago</span>
+                  </div>
+                  <div class="tl-meta">
+                    <span>&#129302; fleet-agent</span>
+                    <span class="tl-dot">&middot;</span>
+                    <span style="text-transform:uppercase; letter-spacing:1px;">FLEET OPS</span>
+                    <span class="tl-dot">&middot;</span>
+                    <span class="pill lime">milestone</span>
+                    <span class="tl-dot">&middot;</span>
+                    <span class="pill emerald">complete</span>
+                  </div>
+                  <div class="tl-handoff">&#8618; 4.3 light-years delivered in 11 days. Crew vitals nominal. Opens a new trade lane &mdash; quarterly revenue forecast updated +18%.</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Entry 5 -->
+            <div class="timeline-row">
+              <div class="tl-inner">
+                <div class="tl-led-col">
+                  <span class="led cyan"></span>
+                  <div class="tl-led-line"></div>
+                </div>
+                <div class="tl-body">
+                  <div class="tl-header">
+                    <span class="pill cyan">SIG 6</span>
+                    <span class="tl-title">Adaptive rerouting engine shipped &mdash; solar flare contingency</span>
+                    <span class="tl-time">8d ago</span>
+                  </div>
+                  <div class="tl-meta">
+                    <span>&#129302; nav-agent</span>
+                    <span class="tl-dot">&middot;</span>
+                    <span style="text-transform:uppercase; letter-spacing:1px;">NAV SYSTEMS</span>
+                    <span class="tl-dot">&middot;</span>
+                    <span class="pill cyan">engineering</span>
+                    <span class="tl-dot">&middot;</span>
+                    <span class="pill emerald">complete</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Entry 6 -->
+            <div class="timeline-row">
+              <div class="tl-inner">
+                <div class="tl-led-col">
+                  <span class="led emerald"></span>
+                  <div class="tl-led-line"></div>
+                </div>
+                <div class="tl-body">
+                  <div class="tl-header">
+                    <span class="pill lime-strong">KEY 9</span>
+                    <span class="tl-title">Docking Bay 7 inspection protocol updated after Ceres incident</span>
+                    <span class="tl-time">9d ago</span>
+                  </div>
+                  <div class="tl-meta">
+                    <span>&#129302; safety-agent</span>
+                    <span class="tl-dot">&middot;</span>
+                    <span style="text-transform:uppercase; letter-spacing:1px;">DOCKING BAYS</span>
+                    <span class="tl-dot">&middot;</span>
+                    <span class="pill lime">safety</span>
+                    <span class="tl-dot">&middot;</span>
+                    <span class="pill emerald">complete</span>
+                  </div>
+                  <div class="tl-handoff">&#8618; New pre-dock magnetic coupling check added. 12 minutes per vessel. Prevents repeat of Ceres-5 hull strain event.</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Entry 7 -->
+            <div class="timeline-row">
+              <div class="tl-inner">
+                <div class="tl-led-col">
+                  <span class="led cyan"></span>
+                  <div class="tl-led-line"></div>
+                </div>
+                <div class="tl-body">
+                  <div class="tl-header">
+                    <span class="pill cyan">SIG 5</span>
+                    <span class="tl-title">Crew shift handoff automation &mdash; asleep/awake transitions</span>
+                    <span class="tl-time">10d ago</span>
+                  </div>
+                  <div class="tl-meta">
+                    <span>&#129302; crew-agent</span>
+                    <span class="tl-dot">&middot;</span>
+                    <span style="text-transform:uppercase; letter-spacing:1px;">CREW OPS</span>
+                    <span class="tl-dot">&middot;</span>
+                    <span class="pill dim">ops</span>
+                    <span class="tl-dot">&middot;</span>
+                    <span class="pill emerald">complete</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div><!-- /.timeline-wrap -->
+        </div><!-- /timeline col -->
+
+        <!-- Active Facts Sidebar -->
+        <div>
+          <div class="zone-label">
+            <span class="zone-icon">&#9670;</span>
+            Active Facts
+          </div>
+          <div class="label-sep"></div>
+
+          <div class="facts-panel">
+            <div style="font-family:var(--rs-font-mono); font-size:8px; color:var(--rs-text-faint); letter-spacing:1.4px; text-transform:uppercase; margin-bottom:12px;">
+              Current truth &middot; 23 assertions
+            </div>
+            <div class="facts-list">
+
+              <div class="fact-row">
+                <span class="fact-subject">meridian-iv</span>
+                <span class="fact-predicate">status</span>
+                <span class="fact-object">en route · ETA 14h to Ceres Hub</span>
+              </div>
+
+              <div class="fact-row">
+                <span class="fact-subject">kepler-62-corridor</span>
+                <span class="fact-predicate">conditions</span>
+                <span class="fact-object">clear · no flare activity</span>
+              </div>
+
+              <div class="fact-row">
+                <span class="fact-subject">titan-mining</span>
+                <span class="fact-predicate">contract_status</span>
+                <span class="fact-object">renewed · 18-month term</span>
+              </div>
+
+              <div class="fact-row">
+                <span class="fact-subject">captain-vess</span>
+                <span class="fact-predicate">assigned_to</span>
+                <span class="fact-object">meridian-iv</span>
+              </div>
+
+              <div class="fact-row">
+                <span class="fact-subject">fleet-fuel-reserve</span>
+                <span class="fact-predicate">level</span>
+                <span class="fact-object">83% · nominal</span>
+              </div>
+
+              <div class="fact-row">
+                <span class="fact-subject">cargo-routing</span>
+                <span class="fact-predicate">strategy</span>
+                <span class="fact-object">adaptive · flare-aware</span>
+              </div>
+
+              <div class="fact-row">
+                <span class="fact-subject">proxima-lane</span>
+                <span class="fact-predicate">status</span>
+                <span class="fact-object">operational · first haul complete</span>
+              </div>
+
+              <div class="fact-row" style="opacity:0.5;">
+                <span class="fact-subject">+16 more</span>
+                <span class="fact-predicate">facts</span>
+                <span class="fact-object" style="color:var(--rs-text-faint);">in production</span>
+              </div>
+
+            </div>
+          </div><!-- /.facts-panel -->
+        </div><!-- /facts col -->
+
+      </div><!-- /.two-col -->
+    </div><!-- /.dash-section -->
+
+    <!-- ── GITHUB CTA ── -->
+    <div class="github-cta">
+      <div>
+        <div class="github-cta-text" style="margin-bottom:6px;">Run the real dashboard</div>
+        <div style="font-family:var(--rs-font-mono); font-size:10px; color:var(--text-secondary);">
+          Connects to your own Supabase project &middot; Live realtime subscriptions &middot; Full protocol access
+        </div>
+      </div>
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <a class="cta-btn cta-primary" href="https://github.com/tensorpunk-labs/relay" target="_blank">View Source &rarr;</a>
+        <a class="cta-btn cta-secondary" href="/setup">Setup Guide</a>
+      </div>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="page-footer">
+      <a href="https://tensorpunklabs.com" target="_blank">Tensorpunk Labs</a>
+      <span>BSL 1.1 &middot; Open Source &middot; Dashboard Preview</span>
+      <a href="mailto:contact@tensorpunk.com">contact@tensorpunk.com</a>
+    </div>
+
+  </div><!-- /.page -->
+
+  <!-- Three.js cortex shader (same code as landing page) -->
+  <script type="importmap">
+  { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js" } }
+  </script>
+  <script type="module">
+    import * as THREE from 'three';
+
+    /* ── GLOBAL BACKGROUND (landing-page cortex) ── */
+    const bgCanvas = document.getElementById('bg-canvas');
+    const bgRenderer = new THREE.WebGLRenderer({ canvas: bgCanvas, antialias: false, alpha: false });
+    bgRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+    bgRenderer.setClearColor(0x0a0c10, 1);
+
+    const bgScene = new THREE.Scene();
+    const bgCamera = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 100);
+    bgCamera.position.z = 4;
+
+    const NODE_COUNT = 120;
+    const EDGE_COUNT = 180;
+    const bgPositions = new Float32Array(NODE_COUNT * 3);
+    const bgPhases = new Float32Array(NODE_COUNT);
+    const BG_CLUSTERS = [
+      { x: -1.5, y: 0.5,  z: -0.5, r: 1.2 },
+      { x:  1.2, y: -0.3, z:  0.3, r: 1.0 },
+      { x:  0.0, y:  0.8, z: -0.8, r: 0.9 },
+      { x: -0.3, y: -0.8, z:  0.6, r: 0.8 },
+    ];
+    const bgVelocities = new Float32Array(NODE_COUNT * 3);
+    for (let i = 0; i < NODE_COUNT; i++) {
+      const c = BG_CLUSTERS[i % BG_CLUSTERS.length];
+      const theta = Math.random() * Math.PI * 2;
+      const phi = Math.acos(2 * Math.random() - 1);
+      const r = c.r * (0.3 + Math.random() * 0.7);
+      bgPositions[i*3+0] = c.x + r * Math.sin(phi) * Math.cos(theta);
+      bgPositions[i*3+1] = c.y + r * Math.sin(phi) * Math.sin(theta);
+      bgPositions[i*3+2] = c.z + r * Math.cos(phi);
+      bgVelocities[i*3+0] = (Math.random()-0.5) * 0.003;
+      bgVelocities[i*3+1] = (Math.random()-0.5) * 0.003;
+      bgVelocities[i*3+2] = (Math.random()-0.5) * 0.002;
+      bgPhases[i] = Math.random() * Math.PI * 2;
+    }
+    const bgNodeGeo = new THREE.BufferGeometry();
+    bgNodeGeo.setAttribute('position', new THREE.BufferAttribute(bgPositions, 3));
+    bgNodeGeo.setAttribute('aPhase', new THREE.BufferAttribute(bgPhases, 1));
+    const bgNodeMat = new THREE.ShaderMaterial({
+      transparent: true, blending: THREE.AdditiveBlending, depthWrite: false,
+      uniforms: { uTime: { value: 0 } },
+      vertexShader: `attribute float aPhase; uniform float uTime; varying float vAlpha; varying float vLime;
+        void main() { vec3 p = position; p.x += sin(uTime*0.2+aPhase)*0.06; p.y += cos(uTime*0.18+aPhase*1.3)*0.05;
+        vec4 mv = modelViewMatrix * vec4(p,1.0); float b = 0.8+0.2*sin(uTime*0.5+aPhase);
+        gl_PointSize = (20.0/-mv.z)*b; gl_Position = projectionMatrix*mv;
+        vAlpha = 0.35+0.25*sin(uTime*0.35+aPhase*0.7); vLime = step(0.88, fract(aPhase*7.13)); }`,
+      fragmentShader: `varying float vAlpha; varying float vLime;
+        void main() { float d = length(gl_PointCoord-0.5); if (d>0.5) discard;
+        float g = pow(1.0-d*2.0, 2.8); vec3 col = mix(vec3(0.0,0.87,1.0), vec3(0.83,0.96,0.0), vLime);
+        gl_FragColor = vec4(col, g*vAlpha); }`,
+    });
+    bgScene.add(new THREE.Points(bgNodeGeo, bgNodeMat));
+
+    const bgEdgePairs = [];
+    for (let i = 0; i < EDGE_COUNT; i++) {
+      const a = Math.floor(Math.random()*NODE_COUNT);
+      let b = Math.floor(Math.random()*NODE_COUNT);
+      if (b===a) b = (a+1)%NODE_COUNT;
+      bgEdgePairs.push(a, b);
+    }
+    const bgEdgePositions = new Float32Array(EDGE_COUNT * 6);
+    const bgEdgeGeo = new THREE.BufferGeometry();
+    bgEdgeGeo.setAttribute('position', new THREE.BufferAttribute(bgEdgePositions, 3));
+    const bgEdgeMat = new THREE.LineBasicMaterial({ color: 0x00ddff, transparent: true, opacity: 0.04, blending: THREE.AdditiveBlending, depthWrite: false });
+    bgScene.add(new THREE.LineSegments(bgEdgeGeo, bgEdgeMat));
+
+    const PULSE_COUNT = 80;
+    const bgPulsePositions = new Float32Array(PULSE_COUNT * 3);
+    const bgPulseData = [];
+    for (let i = 0; i < PULSE_COUNT; i++) {
+      bgPulseData.push({ edge: Math.floor(Math.random()*EDGE_COUNT), t: Math.random(), speed: 0.002+Math.random()*0.005 });
+    }
+    const bgPulseGeo = new THREE.BufferGeometry();
+    bgPulseGeo.setAttribute('position', new THREE.BufferAttribute(bgPulsePositions, 3));
+    const bgPulseMat = new THREE.ShaderMaterial({
+      transparent: true, blending: THREE.AdditiveBlending, depthWrite: false,
+      vertexShader: `void main() { vec4 mv = modelViewMatrix*vec4(position,1.0); gl_PointSize=5.0/-mv.z; gl_Position=projectionMatrix*mv; }`,
+      fragmentShader: `void main() { float d=length(gl_PointCoord-0.5); if (d>0.5) discard;
+        float g=pow(1.0-d*2.0,3.5); gl_FragColor=vec4(0.0,0.87,1.0,g*0.8); }`,
+    });
+    bgScene.add(new THREE.Points(bgPulseGeo, bgPulseMat));
+
+    /* ── CORTEX PANEL (denser, brighter) ── */
+    const cortexCanvas = document.getElementById('cortex-canvas');
+    const cortexRenderer = new THREE.WebGLRenderer({ canvas: cortexCanvas, antialias: true, alpha: true });
+    cortexRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    cortexRenderer.setClearColor(0x080c16, 1);
+
+    const cortexScene = new THREE.Scene();
+    const cortexCamera = new THREE.PerspectiveCamera(55, 2, 0.1, 100);
+    cortexCamera.position.z = 3.5;
+
+    const C_NODE = 200;
+    const C_EDGE = 320;
+    const cPositions = new Float32Array(C_NODE * 3);
+    const cPhases = new Float32Array(C_NODE);
+    const C_CLUSTERS = [
+      { x: -1.4, y: 0.4,  z: -0.3, r: 1.0, col: [0.0, 0.87, 1.0] },   // relay — cyan
+      { x:  1.1, y: -0.2, z:  0.2, r: 0.85, col: [0.83, 0.96, 0.0] },  // Cargo Routing — lime
+      { x:  0.2, y: 0.9,  z: -0.7, r: 0.7, col: [0.3, 1.0, 0.64] },    // Docking Bays — emerald
+      { x: -0.4, y: -0.9, z:  0.5, r: 0.65, col: [0.97, 0.73, 0.33] }, // Customer Relations — amber
+      { x:  0.6, y: 0.1,  z:  0.8, r: 0.6, col: [0.75, 0.51, 1.0] },   // Nav Systems — purple
+      { x: -0.9, y: -0.4, z: -0.6, r: 0.55, col: [0.0, 0.87, 1.0] },   // Crew Ops — cyan
+    ];
+    const cVelocities = new Float32Array(C_NODE * 3);
+    const cColors = new Float32Array(C_NODE * 3);
+    for (let i = 0; i < C_NODE; i++) {
+      const ci = i % C_CLUSTERS.length;
+      const c = C_CLUSTERS[ci];
+      const theta = Math.random() * Math.PI * 2;
+      const phi = Math.acos(2 * Math.random() - 1);
+      const rr = c.r * (0.25 + Math.random() * 0.75);
+      cPositions[i*3+0] = c.x + rr * Math.sin(phi) * Math.cos(theta);
+      cPositions[i*3+1] = c.y + rr * Math.sin(phi) * Math.sin(theta);
+      cPositions[i*3+2] = c.z + rr * Math.cos(phi);
+      cVelocities[i*3+0] = (Math.random()-0.5) * 0.002;
+      cVelocities[i*3+1] = (Math.random()-0.5) * 0.002;
+      cVelocities[i*3+2] = (Math.random()-0.5) * 0.0015;
+      cPhases[i] = Math.random() * Math.PI * 2;
+      cColors[i*3+0] = c.col[0];
+      cColors[i*3+1] = c.col[1];
+      cColors[i*3+2] = c.col[2];
+    }
+    const cNodeGeo = new THREE.BufferGeometry();
+    cNodeGeo.setAttribute('position', new THREE.BufferAttribute(cPositions, 3));
+    cNodeGeo.setAttribute('aPhase', new THREE.BufferAttribute(cPhases, 1));
+    cNodeGeo.setAttribute('aColor', new THREE.BufferAttribute(cColors, 3));
+    const cNodeMat = new THREE.ShaderMaterial({
+      transparent: true, blending: THREE.AdditiveBlending, depthWrite: false,
+      uniforms: { uTime: { value: 0 } },
+      vertexShader: `
+        attribute float aPhase; attribute vec3 aColor;
+        uniform float uTime; varying float vAlpha; varying vec3 vColor;
+        void main() {
+          vec3 p = position;
+          p.x += sin(uTime*0.25+aPhase)*0.07;
+          p.y += cos(uTime*0.20+aPhase*1.2)*0.06;
+          vec4 mv = modelViewMatrix * vec4(p,1.0);
+          float b = 0.75+0.25*sin(uTime*0.6+aPhase);
+          gl_PointSize = (26.0/-mv.z)*b;
+          gl_Position = projectionMatrix*mv;
+          vAlpha = 0.5+0.3*sin(uTime*0.4+aPhase*0.8);
+          vColor = aColor;
+        }`,
+      fragmentShader: `
+        varying float vAlpha; varying vec3 vColor;
+        void main() {
+          float d = length(gl_PointCoord-0.5);
+          if (d>0.5) discard;
+          float g = pow(1.0-d*2.0, 2.5);
+          gl_FragColor = vec4(vColor, g*vAlpha);
+        }`,
+    });
+    cortexScene.add(new THREE.Points(cNodeGeo, cNodeMat));
+
+    const cEdgePairs = [];
+    for (let i = 0; i < C_EDGE; i++) {
+      const a = Math.floor(Math.random()*C_NODE);
+      let b = Math.floor(Math.random()*C_NODE);
+      if (b===a) b=(a+1)%C_NODE;
+      cEdgePairs.push(a,b);
+    }
+    const cEdgePos = new Float32Array(C_EDGE*6);
+    const cEdgeGeo = new THREE.BufferGeometry();
+    cEdgeGeo.setAttribute('position', new THREE.BufferAttribute(cEdgePos, 3));
+    const cEdgeMat = new THREE.LineBasicMaterial({ color: 0x00ddff, transparent: true, opacity: 0.07, blending: THREE.AdditiveBlending, depthWrite: false });
+    const cEdges = new THREE.LineSegments(cEdgeGeo, cEdgeMat);
+    cortexScene.add(cEdges);
+
+    const C_PULSE = 120;
+    const cPulsePos = new Float32Array(C_PULSE*3);
+    const cPulseData = [];
+    for (let i=0; i<C_PULSE; i++) {
+      cPulseData.push({ edge: Math.floor(Math.random()*C_EDGE), t: Math.random(), speed: 0.003+Math.random()*0.007 });
+    }
+    const cPulseGeo = new THREE.BufferGeometry();
+    cPulseGeo.setAttribute('position', new THREE.BufferAttribute(cPulsePos, 3));
+    const cPulseMat = new THREE.ShaderMaterial({
+      transparent: true, blending: THREE.AdditiveBlending, depthWrite: false,
+      vertexShader: `void main(){ vec4 mv=modelViewMatrix*vec4(position,1.0); gl_PointSize=7.0/-mv.z; gl_Position=projectionMatrix*mv; }`,
+      fragmentShader: `void main(){ float d=length(gl_PointCoord-0.5); if(d>0.5) discard; float g=pow(1.0-d*2.0,3.0); gl_FragColor=vec4(0.0,0.87,1.0,g*0.9); }`,
+    });
+    cortexScene.add(new THREE.Points(cPulseGeo, cPulseMat));
+
+    /* ── ANIMATE ── */
+    const clock = new THREE.Clock();
+    let bgGlitch = 0;
+    let cGlitch = 0;
+
+    function updateCortexSize() {
+      const wrap = document.querySelector('.cortex-canvas-wrap');
+      if (!wrap) return;
+      const w = wrap.clientWidth, h = wrap.clientHeight;
+      cortexCamera.aspect = w / h;
+      cortexCamera.updateProjectionMatrix();
+      cortexRenderer.setSize(w, h, false);
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      const t = clock.getElapsedTime();
+      const dt = clock.getDelta();
+
+      /* background */
+      bgNodeMat.uniforms.uTime.value = t;
+      const bPos = bgNodeGeo.attributes.position.array;
+      for (let i=0; i<NODE_COUNT; i++) {
+        const c = BG_CLUSTERS[i%BG_CLUSTERS.length];
+        for (let j=0; j<3; j++) {
+          const idx=i*3+j;
+          bPos[idx] += bgVelocities[idx]*Math.sin(t*0.3+bgPhases[i]);
+          const center=[c.x,c.y,c.z][j];
+          if (Math.abs(bPos[idx]-center)>c.r*1.2) bgVelocities[idx]*=-0.8;
+        }
+      }
+      bgNodeGeo.attributes.position.needsUpdate=true;
+      const bePos=bgEdgeGeo.attributes.position.array;
+      for (let i=0;i<EDGE_COUNT;i++){
+        const a=bgEdgePairs[i*2],b=bgEdgePairs[i*2+1];
+        for(let j=0;j<3;j++){bePos[i*6+j]=bPos[a*3+j];bePos[i*6+3+j]=bPos[b*3+j];}
+      }
+      bgEdgeGeo.attributes.position.needsUpdate=true;
+      bgGlitch+=dt;
+      if(bgGlitch>3+Math.random()*4){
+        bgEdgeMat.opacity=0.15+Math.random()*0.1;
+        setTimeout(()=>{bgEdgeMat.opacity=0.04;},80+Math.random()*120);
+        bgGlitch=0;
+      }
+      const bpPos=bgPulseGeo.attributes.position.array;
+      for(let i=0;i<PULSE_COUNT;i++){
+        const pd=bgPulseData[i]; pd.t+=pd.speed;
+        if(pd.t>1){pd.t=0;pd.edge=Math.floor(Math.random()*EDGE_COUNT);}
+        const a=bgEdgePairs[pd.edge*2],b=bgEdgePairs[pd.edge*2+1];
+        for(let j=0;j<3;j++) bpPos[i*3+j]=bPos[a*3+j]+(bPos[b*3+j]-bPos[a*3+j])*pd.t;
+      }
+      bgPulseGeo.attributes.position.needsUpdate=true;
+      bgCamera.position.x=Math.sin(t*0.04)*0.6;
+      bgCamera.position.y=Math.cos(t*0.025)*0.4;
+      bgCamera.lookAt(0,0,0);
+      bgRenderer.render(bgScene,bgCamera);
+
+      /* cortex panel */
+      cNodeMat.uniforms.uTime.value = t;
+      const cpPos = cNodeGeo.attributes.position.array;
+      for (let i=0;i<C_NODE;i++){
+        const ci=i%C_CLUSTERS.length; const c=C_CLUSTERS[ci];
+        for(let j=0;j<3;j++){
+          const idx=i*3+j;
+          cpPos[idx]+=cVelocities[idx]*Math.sin(t*0.3+cPhases[i]);
+          const center=[c.x,c.y,c.z][j];
+          if(Math.abs(cpPos[idx]-center)>c.r*1.2) cVelocities[idx]*=-0.8;
+        }
+      }
+      cNodeGeo.attributes.position.needsUpdate=true;
+      const cePos=cEdgeGeo.attributes.position.array;
+      for(let i=0;i<C_EDGE;i++){
+        const a=cEdgePairs[i*2],b=cEdgePairs[i*2+1];
+        for(let j=0;j<3;j++){cePos[i*6+j]=cpPos[a*3+j];cePos[i*6+3+j]=cpPos[b*3+j];}
+      }
+      cEdgeGeo.attributes.position.needsUpdate=true;
+      cGlitch+=dt;
+      if(cGlitch>2+Math.random()*3){
+        cEdgeMat.opacity=0.2+Math.random()*0.15;
+        setTimeout(()=>{cEdgeMat.opacity=0.07;},60+Math.random()*100);
+        cGlitch=0;
+      }
+      const cpPPos=cPulseGeo.attributes.position.array;
+      for(let i=0;i<C_PULSE;i++){
+        const pd=cPulseData[i]; pd.t+=pd.speed;
+        if(pd.t>1){pd.t=0;pd.edge=Math.floor(Math.random()*C_EDGE);}
+        const a=cEdgePairs[pd.edge*2],b=cEdgePairs[pd.edge*2+1];
+        for(let j=0;j<3;j++) cpPPos[i*3+j]=cpPos[a*3+j]+(cpPos[b*3+j]-cpPos[a*3+j])*pd.t;
+      }
+      cPulseGeo.attributes.position.needsUpdate=true;
+      cortexCamera.position.x=Math.sin(t*0.06)*0.5;
+      cortexCamera.position.y=Math.cos(t*0.04)*0.35;
+      cortexCamera.lookAt(0,0,0);
+      cortexRenderer.render(cortexScene,cortexCamera);
+    }
+
+    animate();
+    updateCortexSize();
+
+    function resize() {
+      bgCamera.aspect = innerWidth/innerHeight;
+      bgCamera.updateProjectionMatrix();
+      bgRenderer.setSize(innerWidth, innerHeight, false);
+      updateCortexSize();
+    }
+    addEventListener('resize', resize);
+  </script>
+</body>
+</html>

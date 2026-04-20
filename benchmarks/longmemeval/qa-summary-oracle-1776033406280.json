@@ -1,0 +1,23 @@
+{
+  "dataset": "oracle",
+  "total_questions": 10,
+  "correct": 10,
+  "accuracy": 100,
+  "per_type": {
+    "temporal-reasoning": {
+      "correct": 10,
+      "total": 10,
+      "accuracy": 100
+    }
+  },
+  "token_usage": {
+    "gen_input": 12482,
+    "gen_output": 1190,
+    "judge_input": 3683,
+    "judge_output": 10
+  },
+  "estimated_cost_usd": 0.2858,
+  "time_seconds": 173.6,
+  "timestamp": "2026-04-12T22:36:46.281Z",
+  "pipeline": "hybrid_bm25_semantic_rrf_rerank -> claude-opus-4-6 (gen, type-aware) -> gpt-4o (judge)"
+}

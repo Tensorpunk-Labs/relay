@@ -1,0 +1,20 @@
+{
+  "name": "@relay/api",
+  "version": "0.1.0",
+  "description": "Relay API — Vercel Edge Functions for the Context Core",
+  "scripts": {
+    "dev": "vercel dev",
+    "build": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "deploy": "vercel"
+  },
+  "dependencies": {
+    "@relay/core": "workspace:*",
+    "@supabase/supabase-js": "^2.45.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.2",
+    "typescript": "^5.5.0",
+    "vercel": "^37.0.0"
+  }
+}

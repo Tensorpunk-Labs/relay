@@ -1,0 +1,48 @@
+{
+  "dataset": "s",
+  "total_questions": 500,
+  "correct": 424,
+  "accuracy": 84.8,
+  "per_type": {
+    "knowledge-update": {
+      "correct": 71,
+      "total": 78,
+      "accuracy": 91
+    },
+    "multi-session": {
+      "correct": 93,
+      "total": 133,
+      "accuracy": 69.9
+    },
+    "single-session-assistant": {
+      "correct": 55,
+      "total": 56,
+      "accuracy": 98.2
+    },
+    "single-session-preference": {
+      "correct": 25,
+      "total": 30,
+      "accuracy": 83.3
+    },
+    "single-session-user": {
+      "correct": 69,
+      "total": 70,
+      "accuracy": 98.6
+    },
+    "temporal-reasoning": {
+      "correct": 111,
+      "total": 133,
+      "accuracy": 83.5
+    }
+  },
+  "token_usage": {
+    "gen_input": 2228441,
+    "gen_output": 72351,
+    "judge_input": 195802,
+    "judge_output": 500
+  },
+  "estimated_cost_usd": 39.3474,
+  "time_seconds": 14219.3,
+  "timestamp": "2026-04-17T01:58:44.967Z",
+  "pipeline": "hybrid_bm25_semantic_rrf_rerank -> claude-opus-4-6 (gen, type-aware) -> gpt-4o (judge)"
+}

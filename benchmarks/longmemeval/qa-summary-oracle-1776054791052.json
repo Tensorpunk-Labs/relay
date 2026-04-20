@@ -1,0 +1,28 @@
+{
+  "dataset": "oracle",
+  "total_questions": 129,
+  "correct": 119,
+  "accuracy": 92.2,
+  "per_type": {
+    "multi-session": {
+      "correct": 68,
+      "total": 71,
+      "accuracy": 95.8
+    },
+    "temporal-reasoning": {
+      "correct": 51,
+      "total": 58,
+      "accuracy": 87.9
+    }
+  },
+  "token_usage": {
+    "gen_input": 144069,
+    "gen_output": 17477,
+    "judge_input": 48859,
+    "judge_output": 129
+  },
+  "estimated_cost_usd": 3.5952,
+  "time_seconds": 2239.3,
+  "timestamp": "2026-04-13T04:33:11.053Z",
+  "pipeline": "hybrid_bm25_semantic_rrf_rerank -> claude-opus-4-6 (gen, type-aware) -> gpt-4o (judge)"
+}
