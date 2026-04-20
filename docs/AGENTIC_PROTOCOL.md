@@ -92,7 +92,7 @@ The protocol does not require synchronous coordination. An actor deposits contex
 Every package carries natural-language reasoning: why a decision was made, what was ruled out, what's still uncertain. This is not a nice-to-have — it's load-bearing for three things:
 - Downstream actors (human or agent) making informed follow-ons.
 - Audit trails that humans can read without an intermediary translator.
-- Reasoning-based security: the same capability that lets an AI attacker find vulnerabilities lets the defender reason about whether context has been manipulated. (See the Antibody immune-system concept for more.)
+- Reasoning-based security: the same capability that lets an AI attacker find vulnerabilities lets the defender reason about whether context has been manipulated.
 
 ### P5. Human checkpoints are explicit
 

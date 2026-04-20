@@ -175,4 +175,4 @@ Business Source License 1.1 (BSL 1.1) — source available, free for non-product
 
 ## Built By
 
-Tensorpunk Labs (https://tensorpunklabs.com) — a developer tools project from the creators of Tensorpunk audio software.
+Tensorpunk Labs (https://tensorpunklabs.com) — a developer tools project.

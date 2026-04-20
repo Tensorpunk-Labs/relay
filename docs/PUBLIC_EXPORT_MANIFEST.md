@@ -10,7 +10,7 @@ The dev tree (`gitlab.com/tensorpunk-labs/projects/relay`) carries things the pu
 - Internal handoff docs, runbooks, and personal workflow playbooks
 - Live Supabase / Anthropic / OpenAI / GitHub credentials embedded in configs and examples
 - Windows-rooted absolute paths that leak directory layout
-- References to internal tooling (`Agent`, `External Systems`) that aren't meaningful to outside readers
+- References to internal codenames and tooling that aren't meaningful to outside readers
 - An `actor_id` field that identifies a specific operator
 
 The export script is the single source of truth for how to turn the dev tree into a public repo. This document mirrors it in prose so a human can audit the behavior without reading the code.
@@ -81,7 +81,8 @@ Text files (extensions: `.md .ts .tsx .js .mjs .cjs .json .sql .html .yaml .yml 
 | JWT-shaped token (three base64url segments, `eyJ`-prefixed) | `eyJ...`.`eyJ...`.`...` | `YOUR_JWT_TOKEN` |
 | Windows absolute path containing `relay` | `<DriveLetter>:\...\relay[\...]` | `/path/to/relay` |
 | `actor_id` field value (not already genericized) | `"actor_id": "your-actor-id"` | `"actor_id": "your-actor-id"` |
-| Internal tool references | `Agent` / `agent` / `External Systems` | `Agent` / `agent` / `External Systems` |
+| Internal tool codenames | internal tool names (see `buildPatterns()`) | neutral terms (`Agent`, `External Systems`) |
+| Personal names | operator's given name | `the developer` |
 
 Order matters: specific prefixes (Anthropic, Supabase `sb_*`) are applied before more permissive patterns (generic `sk-`, JWT) so the narrower match wins.
 
@@ -117,7 +118,7 @@ Exit codes:
 - `1` — residue found, or fatal error
 - `2` — bad arguments, missing source, dest exists without `--force`
 
-Lexical replacements (`Agent`, `External Systems`, `actor_id`, Windows paths) are **not** part of the verify pass — those are cosmetic normalizations, not security-critical residue. Absence is verified by spot-checking the diff rather than by regex scan.
+Lexical replacements (internal codenames, personal names, `actor_id`, Windows paths) are **not** part of the verify pass — those are cosmetic normalizations, not security-critical residue. Absence is verified by spot-checking the diff rather than by regex scan.
 
 ## When to re-run
 

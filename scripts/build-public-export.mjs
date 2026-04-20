@@ -91,6 +91,8 @@ const EXCLUDE_REL_PATHS = new Set([
   'docs/DAILY_WORKFLOW_PLAYBOOK.md',
   'docs/RELAY_HANDOFF.md',
   'docs/PUNKY_RELAY_HANDOFF.md',
+  'docs/ANTIBODY_SPEC.md',
+  'docs/RELAY_ANALYSIS.md',
   'docs/claude-md-backup',
   'docs/runbooks',
   'docs/superpowers',
@@ -179,6 +181,26 @@ function buildPatterns() {
       name: 'openclaw',
       re: /\bOpenClaw\b/g,
       sub: 'External Systems',
+    },
+    {
+      name: 'personal_name_jordan',
+      re: /\bJordan\b/g,
+      sub: 'the developer',
+    },
+    {
+      name: 'codename_neuraldistortion',
+      re: /\bNeuralDistortion\b/g,
+      sub: 'ExampleApp',
+    },
+    {
+      name: 'codename_latentsampler',
+      re: /\bLatentSampler\b/g,
+      sub: 'ExampleTool',
+    },
+    {
+      name: 'codename_instantrecall',
+      re: /\bInstantRecall(?:\.ai)?\b/g,
+      sub: 'a memory-as-a-service predecessor',
     },
   ];
 }
@@ -328,10 +350,17 @@ async function verify(destRoot, patterns) {
     const lines = content.split(/\r?\n/);
     for (let i = 0; i < lines.length; i++) {
       for (const p of patterns) {
-        // Skip lexical replacements in the verification pass: the strings
-        // 'Agent', 'External Systems', actor_id values, and Windows paths are
-        // non-credential and their absence is verified by sampling.
-        if (['punky_upper', 'punky_lower', 'openclaw', 'actor_id_json', 'windows_path'].includes(p.name)) continue;
+        // Skip lexical replacements in the verification pass: internal
+        // codenames, personal names, actor_id values, and Windows paths are
+        // non-credential and their absence is verified by spot-checking.
+        if (
+          p.name === 'actor_id_json' ||
+          p.name === 'windows_path' ||
+          p.name.startsWith('punky_') ||
+          p.name === 'openclaw' ||
+          p.name.startsWith('personal_name_') ||
+          p.name.startsWith('codename_')
+        ) continue;
         // Reset lastIndex on the global regex each call.
         p.re.lastIndex = 0;
         if (p.re.test(lines[i])) {

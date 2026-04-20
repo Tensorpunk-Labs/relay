@@ -83,7 +83,7 @@ create table sessions (
   project_id text not null references projects(id),
   actor_type text not null check (actor_type in ('agent', 'human')),
   actor_id text not null,
-  agent_description text,       -- e.g. "Claude Code @ NeuralDistortion"
+  agent_description text,       -- e.g. "Claude Code @ my-project"
   packages_pulled text[] default '{}',
   packages_deposited text[] default '{}',
   started_at timestamptz default now(),

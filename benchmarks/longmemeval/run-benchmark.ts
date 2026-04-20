@@ -412,8 +412,6 @@ async function runBenchmark(opts: {
   // Comparison
   console.log(`\n${'─'.repeat(60)}`);
   console.log(`Comparison:`);
-  console.log(`  MemPalace (claimed): 96.6% recall_any@5 (inflated — see Issue #29)`);
-  console.log(`  AgentMemory:         95.2% recall_any@5`);
   console.log(`  Relay:               ${(recallAnyCount / total * 100).toFixed(1)}% recall_any@${opts.topK}`);
   console.log(`${'─'.repeat(60)}`);
 }

@@ -1,22 +1,25 @@
 -- ============================================================
--- RELAY CONTEXT CORE — Dev Seed Data
+-- RELAY CONTEXT CORE — Example Seed Data
 -- ============================================================
+--
+-- These rows are illustrative. Replace with your own projects
+-- via `relay projects create` or the API. The `owner_id` is
+-- whatever actor_id you configured for your install.
 
--- Insert a default project for development
 insert into projects (id, name, description, owner_id)
 values (
-  'proj_dev_neuraldistortion',
-  'NeuralDistortion',
-  'Neural audio effects VST3 plugin — production pipeline',
-  'jordan'
+  'proj_example_api',
+  'Example API',
+  'Backend service — HTTP API and database layer',
+  'your-actor-id'
 );
 
 insert into projects (id, name, description, owner_id)
 values (
-  'proj_dev_latentsampler',
-  'LatentSampler',
-  'Neural audio sampler — Stable Audio latent space FX',
-  'jordan'
+  'proj_example_web',
+  'Example Web',
+  'Frontend app — dashboard and user-facing surfaces',
+  'your-actor-id'
 );
 
 insert into projects (id, name, description, owner_id)
@@ -24,5 +27,5 @@ values (
   'proj_dev_relay',
   'Relay',
   'Continuous context flow for human-agent teams — the system itself',
-  'jordan'
+  'your-actor-id'
 );

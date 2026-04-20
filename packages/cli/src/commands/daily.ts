@@ -187,9 +187,9 @@ function buildDaySummary(
     }
   }
 
-  // Jordan's thoughts
+  // End-of-day thoughts
   if (thoughts) {
-    lines.push("## Jordan's Thoughts");
+    lines.push('## Thoughts');
     lines.push('');
     lines.push(thoughts);
     lines.push('');
@@ -209,7 +209,7 @@ export function dailyCommand(): Command {
       .description('Morning check-in: orchestrate + TODO cross-reference + daily brief')
       .option('--todo-today <path>', 'Path to TODO TODAY markdown')
       .option('--todo-tomorrow <path>', 'Path to TODO TOMORROW markdown')
-      .option('--deposit', 'Deposit boot analysis to Tensorpunk Meta')
+      .option('--deposit', 'Deposit boot analysis to the configured meta project')
       .option('--focus <topic>', 'Focus area for orchestrate')
       .option('--quiet', 'Minimal output')
       .action(async (opts) => {
@@ -241,7 +241,7 @@ export function dailyCommand(): Command {
             status: 'complete',
             reviewType: 'none',
           });
-          if (!opts.quiet) console.error('[Deposited to Tensorpunk Meta]');
+          if (!opts.quiet) console.error('[Deposited to meta project]');
         }
       }),
   );
@@ -279,12 +279,12 @@ export function dailyCommand(): Command {
             status: 'complete',
             reviewType: 'none',
           });
-          if (!opts.quiet) console.error('[Deposited day summary to Tensorpunk Meta]');
+          if (!opts.quiet) console.error('[Deposited day summary to meta project]');
 
           if (opts.thoughts && cfg.thoughtsProject) {
             await client.deposit({
               projectId: cfg.thoughtsProject,
-              title: `Jordan Thoughts — ${todayDate()} (Logoff)`,
+              title: `Daily Thoughts — ${todayDate()} (Logoff)`,
               description: opts.thoughts,
               decisions: [],
               openQuestions: [],
@@ -293,7 +293,7 @@ export function dailyCommand(): Command {
               status: 'complete',
               reviewType: 'none',
             });
-            if (!opts.quiet) console.error('[Deposited thoughts to Jordan Thoughts]');
+            if (!opts.quiet) console.error('[Deposited thoughts to thoughts project]');
           }
         }
       }),

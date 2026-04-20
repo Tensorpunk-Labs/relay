@@ -27,7 +27,7 @@ v0.1 ships the `RelayStorage` interface as the type contract the protocol refere
 
 **Acceptance:** `grep -r "@supabase/supabase-js" packages/core/src/` returns only `packages/core/src/storage/supabase.ts`. Every other file in `core/` is storage-agnostic.
 
-**Risk window:** This refactor is invasive. Do it on a branch, test against Jordan's live DB as a read-only dry-run first, then ship.
+**Risk window:** This refactor is invasive. Do it on a branch, test against a live DB as a read-only dry-run first, then ship.
 
 ---
 
@@ -68,7 +68,7 @@ Pull/push context packages between two conformant implementations.
 
 **Use cases:**
 - Backup-restore between Supabase and local SQLite
-- Multi-device dev (Jordan's laptop ↔ desktop)
+- Multi-device dev (laptop ↔ desktop for the same operator)
 - Team mirror (public read-only replica synced from private authoritative store)
 
 **Signature (target):**

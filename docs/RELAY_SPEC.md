@@ -32,29 +32,25 @@ The north star metric, when we get there: **does a team running on Relay produce
 
 0. [The North Star](#0-the-north-star)
 
-1. [Philosophy & Core Principles](#1-philosophy--core-principles)
+1. [Philosophy & Core Principles](#1-philosophy-core-principles)
 2. [Why Scrum Fails. Why Kanban Is Close. Why We Need Relay.](#2-why-scrum-fails-why-kanban-is-close-why-we-need-relay)
 3. [The Core Primitive: Context Packages](#3-the-core-primitive-context-packages)
 4. [The Context Diff (.cdiff)](#4-the-context-diff-cdiff)
 5. [System Architecture](#5-system-architecture)
 6. [The Context Core (Cloud Layer)](#6-the-context-core-cloud-layer)
-7. [Vector DB & RAG — Design Decision](#7-vector-db--rag--design-decision)
+7. [Vector DB & RAG — Design Decision](#7-vector-db-rag-design-decision)
 8. [The Master Orchestrator](#8-the-master-orchestrator)
-9. [CLI Tool — relay-cli](#9-cli-tool--relay-cli)
+9. [CLI Tool — relay-cli](#9-cli-tool-relay-cli)
 10. [MCP Server Integration](#10-mcp-server-integration)
-11. [InstantRecall Integration](#11-instantrecall-integration)
-12. [Phase 1: Personal Multi-Instance Setup](#12-phase-1-personal-multi-instance-setup)
-13. [Phase 2: Team Coordination Layer](#13-phase-2-team-coordination-layer)
-14. [Phase 3: Product / Frontend Vision](#14-phase-3-product--frontend-vision)
-15. [Data Models](#15-data-models)
-16. [Supabase Schema](#16-supabase-schema)
-17. [API Contracts](#17-api-contracts)
-18. [Future-Proofing & Standards Philosophy](#18-future-proofing--standards-philosophy)
-19. [Open Questions & Design Decisions Log](#19-open-questions--design-decisions-log)
-20. [The Lattice Integration — Swarm Research as a Relay Producer](#20-the-lattice-integration--swarm-research-as-a-relay-producer)
-21. [AgenticDashboard / External Systems — Existing System Unification](#21-agenticdashboard--openclaw--existing-system-unification)
-22. [The Relay Rules Engine — Reactive Automation Layer](#22-the-relay-rules-engine--reactive-automation-layer)
-23. [InstantRecall Deep Analysis — Architecture, Assets & Relay Integration Map](#23-instantrecall-deep-analysis--architecture-assets--relay-integration-map)
+11. [Phase 1: Personal Multi-Instance Setup](#11-phase-1-personal-multi-instance-setup)
+12. [Phase 2: Team Coordination Layer](#12-phase-2-team-coordination-layer)
+13. [Phase 3: Product / Frontend Vision](#13-phase-3-product-frontend-vision)
+14. [Data Models](#14-data-models)
+15. [Supabase Schema](#15-supabase-schema)
+16. [API Contracts](#16-api-contracts)
+17. [Future-Proofing & Standards Philosophy](#17-future-proofing-standards-philosophy)
+18. [Open Questions & Design Decisions Log](#18-open-questions-design-decisions-log)
+19. [The Relay Rules Engine — Reactive Automation Layer](#19-the-relay-rules-engine-reactive-automation-layer)
 
 ---
 
@@ -648,37 +644,9 @@ Include all decisions made, open questions discovered, and a clear handoff note.
 ## Current Project Status
 [Auto-populated by relay at session start]
 ```
-
 ---
 
-## 11. InstantRecall Integration
-
-### Background
-
-InstantRecall is an existing personal project — a memory-as-a-service API connected to a vector database. It provides persistent memory across agent sessions via an API layer.
-
-### Integration Strategy
-
-**Do not replace InstantRecall. Extend it as the personal memory layer within Relay.**
-
-InstantRecall solves the personal, cross-session memory problem. Relay solves the project-level, multi-actor context flow problem. They operate at different layers and are complementary.
-
-Integration points:
-- **Session start**: Relay `session_start` calls InstantRecall to hydrate personal/agent context (preferences, working style, past decisions relevant to this session) before pulling project context from the Context Core.
-- **Session end**: Interesting session-level learnings can optionally be written back to InstantRecall (e.g., "learned that this team prefers X approach for auth decisions").
-- **Orchestrator**: The Orchestrator can optionally query InstantRecall for long-term patterns across an agent's session history, supplementing the project graph.
-
-### Rename Recommendation
-
-Given the direction this is heading, consider renaming InstantRecall to something that fits the Relay ecosystem namespace — e.g., `relay-recall` or keeping it as a named sub-service: **Recall by Relay**.
-
-### Priority Note for Future Agentic Work
-
-**When starting any agentic work session referencing this project or the Relay system: call InstantRecall (Recall) FIRST to hydrate personal context, THEN connect to the Relay Context Core for project state. This two-layer orientation should be the standard session start protocol.**
-
----
-
-## 12. Phase 1: Personal Multi-Instance Setup
+## 11. Phase 1: Personal Multi-Instance Setup
 
 ### Goal
 
@@ -723,7 +691,7 @@ relay/
 
 ---
 
-## 13. Phase 2: Team Coordination Layer
+## 12. Phase 2: Team Coordination Layer
 
 ### What Changes
 
@@ -761,7 +729,7 @@ Human runs `relay review list` and gets a prioritized queue. Reviews a package, 
 
 ---
 
-## 14. Phase 3: Product / Frontend Vision
+## 13. Phase 3: Product / Frontend Vision
 
 ### The Relay Frontend
 
@@ -797,7 +765,7 @@ This is a real problem with a real budget attached to it at companies of 500+ pe
 
 ---
 
-## 15. Data Models
+## 14. Data Models
 
 ### Core Types (TypeScript)
 
@@ -879,7 +847,7 @@ interface Session {
 
 ---
 
-## 16. Supabase Schema
+## 15. Supabase Schema
 
 ```sql
 -- Enable pgvector
@@ -1005,7 +973,7 @@ create index on package_embeddings using ivfflat (embedding vector_cosine_ops);
 
 ---
 
-## 17. API Contracts
+## 16. API Contracts
 
 ### Base URL: `https://your-relay.vercel.app/api/v1`
 
@@ -1031,7 +999,7 @@ GET    /orchestrate/reports/:id      # Get orchestrator report
 
 ---
 
-## 18. Future-Proofing & Standards Philosophy
+## 17. Future-Proofing & Standards Philosophy
 
 ### Design for Openness
 
@@ -1057,157 +1025,28 @@ Long term, the `.relay.zip` context package format should be proposed as a commu
 
 ---
 
-## 19. Open Questions & Design Decisions Log
+## 18. Open Questions & Design Decisions Log
 
 | # | Question | Status | Decision |
 |---|----------|--------|----------|
 | 1 | Fork Git for diffs vs. custom .cdiff format? | Decided | Custom .cdiff — purpose-built for context, not code. Git would add C dependency and wrong abstraction level. |
 | 2 | Vector DB: separate service vs. pgvector? | Decided | pgvector — no additional infrastructure, same Postgres, avoids sync problem. |
 | 3 | Package format: zip vs. directory vs. custom? | Decided | .relay.zip — universal, self-describing, agent-friendly, lightweight. |
-| 4 | InstantRecall: replace or integrate? | Decided | Integrate — Recall is personal memory layer, Relay is project context layer. Complementary. |
-| 5 | Lattice: standalone vs. Relay producer? | Decided | Relay producer — Lattice deposits swarm research as bulk context packages. Relay becomes its coordination backbone. |
-| 6 | AgenticDashboard/External Systems: rewrite vs. re-backend? | Decided | Re-backend — keep UI/UX and agent concepts, replace coordination layer with Relay Context Core. |
-| 7 | Rules Engine: where does it live? | Decided | Context Core (server-side) — rules are project/node config, evaluated at event time by the API. Not client-side logic. |
-| 8 | Embedding model: Claude vs. OpenAI? | Open | Default to OpenAI text-embedding-3-small (proven, cheap, 1536 dim). Claude embedding API as option. |
-| 9 | Auth: Supabase Auth vs. custom? | Open | Default to Supabase Auth for Phase 1 simplicity. May need custom for enterprise SSO later. |
-| 10 | Real-time: WebSocket vs. polling? | Open | Supabase Realtime subscriptions for Phase 1. Evaluate at scale. |
-| 11 | Package size limits? | Open | TBD based on Supabase Storage pricing. Likely 50MB per package initially. |
-| 12 | Orchestrator: scheduled vs. event-driven? | Open | Event-driven preferred (trigger on review queue depth, blocker duration). Scheduled as fallback. |
-| 13 | CLI: interactive prompts vs. flags only? | Open | Interactive for `relay deposit` (to guide agents). Flags for all others (scriptable). |
-| 14 | Rules Engine: how are voice personalities defined? | Open | Likely a JSON personality profile registered per-project. Needs schema design. |
-| 15 | Lattice swarm results: one package per agent or aggregate? | Open | Leaning toward one package per agent (preserves diversity of output) + one Orchestrator synthesis package. |
-
+| 4 | Rules Engine: where does it live? | Decided | Context Core (server-side) — rules are project/node config, evaluated at event time by the API. Not client-side logic. |
+| 5 | Embedding model: Claude vs. OpenAI? | Open | Default to OpenAI text-embedding-3-small (proven, cheap, 1536 dim). Claude embedding API as option. |
+| 6 | Auth: Supabase Auth vs. custom? | Open | Default to Supabase Auth for Phase 1 simplicity. May need custom for enterprise SSO later. |
+| 7 | Real-time: WebSocket vs. polling? | Open | Supabase Realtime subscriptions for Phase 1. Evaluate at scale. |
+| 8 | Package size limits? | Open | TBD based on Supabase Storage pricing. Likely 50MB per package initially. |
+| 9 | Orchestrator: scheduled vs. event-driven? | Open | Event-driven preferred (trigger on review queue depth, blocker duration). Scheduled as fallback. |
+| 10 | CLI: interactive prompts vs. flags only? | Open | Interactive for `relay deposit` (to guide agents). Flags for all others (scriptable). |
+| 11 | Rules Engine: how are voice personalities defined? | Open | Likely a JSON personality profile registered per-project. Needs schema design. |
 ---
 
-## 20. The Lattice Integration — Swarm Research as a Relay Producer
-
-### What The Lattice Is
-
-The Lattice is a swarm research engine — it deploys armies of subagents with distinct personalities to research a topic from different angles, producing divergent outputs that collectively produce richer R&D results than any single agent could. It's an intentionally opinionated, multi-perspective research machine.
-
-### The Problem It Currently Has
-
-Without Relay, the Lattice's outputs are ephemeral — each swarm run produces results that live in that session and nowhere else. There's no persistent record of what was researched, what each agent found, how results related to each other, or how they should inform future work. The swarm fires and the context evaporates.
-
-### The Integration Vision
-
-The Lattice becomes a **Relay producer** — a first-class actor that deposits context packages into the Context Core. Every swarm run becomes a cluster of context packages in the project graph, semantically searchable and available to every subsequent agent session.
-
-**Per-agent packages:** Each Lattice subagent deposits its own context package on completion — preserving the personality-driven diversity of output. A skeptic agent's package reads differently from an optimist agent's package. That difference is the value.
-
-**Synthesis package:** After all subagents complete, the Lattice Orchestrator (or Relay's Master Orchestrator) produces a synthesis package that identifies convergence, contradiction, and the most interesting tensions across the swarm's output.
-
-**Integration points:**
-
-```
-Lattice Swarm Run
-  ├── Agent [Skeptic]     → relay deposit → pkg_skeptic_001
-  ├── Agent [Optimist]    → relay deposit → pkg_optimist_001
-  ├── Agent [Technical]   → relay deposit → pkg_technical_001
-  ├── Agent [Market]      → relay deposit → pkg_market_001
-  └── Lattice Orchestrator → relay deposit → pkg_synthesis_001
-                                              (parent: all above)
-```
-
-The synthesis package becomes a rich, structured artifact that future agents can pull as a starting point for any follow-on work.
-
-### The Rules Engine Hook
-
-A Lattice completion can trigger a Relay rule — for example:
-- When `lattice_swarm_complete` fires → trigger Orchestrator synthesis
-- When synthesis package is deposited → send desktop toast + voice summary to user
-- When a Lattice run surfaces a blocker → auto-flag for human review
-
-This is the first example of Relay acting as the connective tissue between specialized tools — not replacing the Lattice, but giving it memory, lineage, and reactivity.
-
-### Package Type Extension
-
-The manifest schema should be extended with a `package_type` field:
-
-```json
-{
-  "package_type": "lattice_agent_output",
-  "lattice_metadata": {
-    "run_id": "lattice_run_abc",
-    "agent_personality": "skeptic",
-    "topic": "AI-native project coordination market sizing",
-    "swarm_size": 5,
-    "agent_index": 2
-  }
-}
-```
-
-Standard package types:
-- `standard` — default human or agent work unit
-- `lattice_agent_output` — single Lattice agent result
-- `lattice_synthesis` — Lattice swarm synthesis
-- `orchestrator_report` — Master Orchestrator output
-- `human_review` — human decision/review result
-- `onboarding_briefing` — generated orientation for new participant
-
----
-
-## 21. AgenticDashboard / External Systems — Existing System Unification
-
-### What These Systems Are
-
-**External Systems** is a modified Claude Code CLI setup with an orchestrator, a basic Kanban-style coordination layer, subagents with distinct roles, voice-to-text per agent, and basic handoffs between them. It's conceptually rich but coordination-wise held together with custom glue code.
-
-**AgenticDashboard** is the frontend strapped into External Systems — a visual layer for monitoring agent activity, orchestrator state, and task flow. It exists but the backend it's watching is the bespoke External Systems system.
-
-### The Problem
-
-External Systems's coordination layer is custom and brittle. Handoffs are partially implemented. The Kanban system has the same fundamental limitations described in §2. Context evaporates between sessions. Adding new agent types or roles requires navigating a maze of custom coordination logic. The system works, but each improvement requires understanding the whole system before touching any part of it.
-
-### The Unification Strategy
-
-**Don't rebuild — re-backend.**
-
-External Systems and AgenticDashboard have real value in their concepts, UI patterns, and agent role definitions. The right move is to strip out the custom coordination logic and replace it with Relay as the backend, while keeping everything else intact.
-
-**What stays:**
-- Agent role definitions and personalities
-- Voice-to-text per agent
-- The AgenticDashboard UI (it becomes a Relay frontend consumer)
-- The orchestrator concept (it becomes a Relay Orchestrator client)
-
-**What gets replaced:**
-- Custom Kanban → Relay work graph
-- Bespoke handoff logic → Relay context packages + deposit/pull protocol
-- Session state management → Relay Context Core sessions
-- Custom inter-agent communication → Relay rules engine + package flow
-
-### The Agent-Agnostic Core Principle
-
-This is the architectural insight worth enshrining: **the Context Core is the brain; the agent framework is the hands.**
-
-External Systems agents, Claude Code CLI, future LangChain agents, future CrewAI setups — all of them should be able to connect to the same Relay Context Core and participate in the same work graph. The agent framework choice becomes an implementation detail, not a coordination constraint.
-
-This means the Core should never have assumptions about:
-- Which model is running the agent
-- Which CLI or framework is wrapping it
-- What interface the human is using
-
-It should only care about: **which session is active, what context was pulled, what package was deposited, what rules apply.**
-
-### AgenticDashboard as Relay Frontend (Near-term)
-
-AgenticDashboard can be connected to the Relay API directly — it stops watching External Systems's internal state and starts watching the Context Core. This immediately gives it:
-- A real work graph to visualize (not a Kanban board)
-- Accurate session state across all agent instances
-- Package lineage and diff views
-- The review queue
-- Orchestrator report feeds
-
-This is actually the fastest path to a working Relay frontend — reuse what already exists rather than building the Phase 3 frontend from scratch.
-
----
-
-## 22. The Relay Rules Engine — Reactive Automation Layer
+## 19. The Relay Rules Engine — Reactive Automation Layer
 
 ### The Problem Being Solved
 
-As agentic systems grow, the coordination instructions become a maze. "When agent A finishes, tell agent B to start, but only if the human approved, and if it was a Lattice run also do X, and send a notification if it's after hours..." This logic ends up scattered across agent prompts, custom scripts, and undocumented conventions. It's fragile and invisible.
+As agentic systems grow, the coordination instructions become a maze. "When agent A finishes, tell agent B to start, but only if the human approved, and also run the orchestrator if it's a research swarm, and send a notification if it's after hours..." This logic ends up scattered across agent prompts, custom scripts, and undocumented conventions. It's fragile and invisible.
 
 The Rules Engine makes this logic **explicit, modular, and inspectable** — living in the Context Core as first-class configuration, not buried in agent prompts.
 
@@ -1232,8 +1071,6 @@ type RelayEvent =
   | 'question.surfaced'          // New open question added to a package
   | 'question.resolved'          // Open question marked resolved
   | 'orchestrator.report_ready'  // Orchestrator completed a run
-  | 'lattice.swarm_complete'     // All Lattice agents finished a run
-  | 'lattice.agent_complete'     // Single Lattice agent finished
   | 'review_queue.threshold'     // N packages in review queue
   | 'blocker.duration_exceeded'; // Blocker has been open > X hours
 ```
@@ -1248,7 +1085,6 @@ type RelayAction =
   | 'agent.spawn'           // Spin up a new agent session with context
   | 'package.auto_approve'  // Auto-approve if actor matches trust config
   | 'orchestrator.trigger'  // Run Orchestrator against project
-  | 'lattice.spawn'         // Trigger a new Lattice swarm run
   | 'relay.message'         // Send a message to a specific agent session
   | 'human.notify'          // Queue a human notification (email, SMS, etc.)
   | 'package.tag'           // Auto-apply tags to the triggering package
@@ -1261,39 +1097,39 @@ type RelayAction =
 {
   "rule_id": "rule_abc123",
   "project_id": "proj_xyz",
-  "name": "Voice summary on Lattice completion",
-  "description": "When a Lattice swarm finishes, speak a digest and notify desktop",
+  "name": "Voice summary on review queue threshold",
+  "description": "When the review queue has 3+ packages waiting, speak a digest and notify desktop",
   "enabled": true,
   "scope": {
     "type": "project",        // 'project' | 'node' | 'node_type' | 'actor_type'
     "id": "proj_xyz"
   },
   "trigger": {
-    "event": "lattice.swarm_complete",
+    "event": "review_queue.threshold",
     "conditions": [
-      { "field": "swarm_size", "operator": "gte", "value": 3 }
+      { "field": "queue_depth", "operator": "gte", "value": 3 }
     ]
   },
   "actions": [
     {
       "type": "orchestrator.trigger",
       "config": {
-        "focus": "synthesize swarm outputs"
+        "focus": "summarize packages waiting for review"
       }
     },
     {
       "type": "desktop.toast",
       "config": {
-        "title": "Lattice Run Complete",
-        "message": "{{swarm_size}} agents finished. Orchestrator synthesis in progress.",
-        "icon": "lattice"
+        "title": "Review Queue",
+        "message": "{{queue_depth}} packages awaiting review. Orchestrator summary in progress.",
+        "icon": "review"
       }
     },
     {
       "type": "voice.speak",
       "config": {
         "personality": "concise-analyst",
-        "template": "Lattice run complete. {{agent_count}} perspectives collected on {{topic}}. Synthesis is running — I'll brief you when it's ready."
+        "template": "Review queue at {{queue_depth}}. I'll brief you when the summary is ready."
       }
     }
   ],
@@ -1325,7 +1161,7 @@ Voice output actions reference a personality profile — a named configuration t
 }
 ```
 
-Other example personalities: `cheerful-collaborator`, `critical-reviewer`, `executive-briefer`, `developer-standup`. These map directly to External Systems's existing agent personality concepts — so the migration is natural.
+Other example personalities: `cheerful-collaborator`, `critical-reviewer`, `executive-briefer`, `developer-standup`. Profiles are user-defined — wire them to whatever voice or messaging backend you prefer.
 
 ### Node-Level Rules
 
@@ -1455,336 +1291,9 @@ The Rules Engine is the feature that turns Relay from a coordination protocol in
 - Enterprises can define compliance rules directly in the graph ("any package touching payments must have human review before agent handoff")
 - Third-party integrations become trivial (webhook action = unlimited extensibility)
 
-It's also the feature that makes External Systems's multi-modal, voice-driven, personality-rich agent experience portable to any Relay-connected setup — because the voice and personality logic lives in the Core, not inside External Systems's custom code.
-
----
-
----
-
-## 23. InstantRecall Deep Analysis — Architecture, Assets & Relay Integration Map
-
-### Background & Purpose
-
-This section documents a comprehensive code-level analysis of the **InstantRecall.ai** codebase (`X:\DevExperiments\instantrecallai`), a production-grade memory-as-a-service SaaS platform. InstantRecall is the predecessor and proving ground for many patterns Relay will use. This analysis identifies what can be lifted directly, what needs adaptation, and what maps to Relay's Context Core concept.
-
-### 23.1 InstantRecall Architecture Overview
-
-**Stack:** Next.js 15.5 (App Router) + React 19 + TypeScript 5 + Supabase (Postgres) + Pinecone (vectors) + Stripe (billing)  
-**Deployment:** Vercel  
-**Auth:** NextAuth.js 4.24 with JWT strategy (30-day sessions)  
-**Styling:** Tailwind CSS 4, custom glassmorphic design system  
-
-```
-instantrecallai/
-├── app/                              # Next.js App Router
-│   ├── api/                          # 10 API route groups
-│   │   ├── auth/[...nextauth]/       # NextAuth handler
-│   │   ├── keys/                     # API key management (CRUD)
-│   │   ├── memory/query/             # Core memory broker endpoint
-│   │   ├── settings/                 # User settings CRUD
-│   │   ├── stripe/{checkout,portal,webhook}  # Billing
-│   │   ├── subscription/            # Plan status
-│   │   ├── usage/                   # Monthly metering
-│   │   └── prompt-history/          # Audit trail
-│   ├── dashboard/                   # Main user UI
-│   ├── login/                       # Auth page
-│   ├── docs/, how-it-works/         # Marketing/docs pages
-│   └── layout.tsx, providers.tsx     # Root layout + SessionProvider
-├── src/
-│   ├── lib/                          # Business logic (10 modules)
-│   │   ├── memory.ts                 # RAG orchestration (core)
-│   │   ├── pinecone.ts               # Vector storage operations
-│   │   ├── openai.ts                 # Embeddings + summarization
-│   │   ├── claude.ts                 # Anthropic summarization
-│   │   ├── grok.ts                   # xAI summarization
-│   │   ├── settings.ts               # User settings helpers
-│   │   ├── encryption.ts             # AES-256-GCM key encryption
-│   │   ├── stripe.ts                 # Billing + usage metering
-│   │   ├── auth.ts                   # NextAuth config
-│   │   └── supabase.ts               # DB client initialization
-│   ├── components/                   # 15+ React components
-│   └── db/                           # SQL schema migrations (7 files)
-└── types/                            # NextAuth type augmentation
-```
-
-### 23.2 Supabase Schema — Complete Table Inventory
-
-#### Tables & Key Columns
-
-| Table | Purpose | Key Columns | RLS |
-|-------|---------|-------------|-----|
-| `users` | User accounts | id (UUID), email (UNIQUE), name, email_verified, image | Enabled — own data only |
-| `accounts` | OAuth providers (NextAuth) | user_id (FK), provider, provider_account_id, tokens | Enabled |
-| `sessions` | Session tokens (NextAuth) | session_token (UNIQUE), user_id (FK), expires | Enabled |
-| `verification_tokens` | Email verification | identifier, token, expires | Enabled |
-| `api_keys` | Encrypted API credentials | user_id (FK), key_type, provider, encrypted_key, key_name, is_active | **Disabled** (auth in API layer) |
-| `user_settings` | Memory & summarization config | user_id (FK, UNIQUE), summarization_*, temperature, max_tokens, top_k, score_threshold | Enabled |
-| `prompt_history` | Audit trail for prompt changes | user_id, prompt_text, settings_snapshot (JSONB) | Enabled |
-| `subscriptions` | Stripe billing | stripe_customer_id, stripe_subscription_id, plan_id, status, current_period_end | Enabled |
-| `usage_metrics` | Monthly query metering | user_id, month (YYYY-MM), query_count | Enabled |
-
-#### Key Database Functions
-
-| Function | Type | Purpose |
-|----------|------|---------|
-| `get_user_settings(uuid)` | SECURITY DEFINER | Lazy-creates default settings, returns user config |
-| `increment_user_usage(uuid)` | SECURITY DEFINER | UPSERT monthly query counter (concurrent-safe) |
-| `get_current_usage(uuid)` | SECURITY DEFINER | Returns current month query count |
-| `save_prompt_history()` | TRIGGER | Auto-snapshots settings to prompt_history on custom_prompt change |
-
-#### Constraints & Validation (in DB)
-
-- `api_keys`: UNIQUE(user_id, key_type, provider), CHECK provider IN ('openai','claude','grok','pinecone','anthropic'), CHECK key_type IN ('summarization','vector_storage')
-- `user_settings`: CHECK constraints on temperature (0-1), max_tokens (1-500), top_k (1-20), score_threshold (0-1)
-- `user_settings.summarization_model`: CHECK against enumerated list of OpenAI, Claude, and Grok models
-- `usage_metrics`: UNIQUE(user_id, month)
-
-### 23.3 RAG / Vector Implementation
-
-#### Embedding Pipeline
-
-- **Model:** OpenAI `text-embedding-3-small` (centralized — InstantRecall.ai's own key covers all users)
-- **Dimensions:** 1536
-- **Library:** `openai` v6.2.0
-- **Cost:** ~$0.0001/1K tokens
-
-#### Vector Storage
-
-- **Provider:** Pinecone (BYO — users supply their own API key)
-- **Library:** `@pinecone-database/pinecone` v6.1.2
-- **Index:** `instantrecall-memories`
-- **Metric:** Cosine similarity
-- **Namespace isolation:** By `sessionId`
-
-**Critical difference from Relay:** InstantRecall uses **external Pinecone** for vectors, not pgvector. Relay's spec calls for **Supabase pgvector** (in-house). This is a deliberate divergence — Relay wants vectors co-located with metadata for transactional consistency and simpler ops.
-
-#### RAG Pipeline (`processMemoryQuery()` in `src/lib/memory.ts`)
-
-```
-1. getUserSettings(userId)           → topK, scoreThreshold, summarization config
-2. generateEmbedding(message)        → 1536-dim vector via OpenAI
-3. retrieveContext(embedding, topK)  → Pinecone cosine search, filtered by sessionId
-4. Filter by scoreThreshold          → Drop low-relevance results
-5. formatContext(memories)           → Build "Previous conversation context:" string
-6. storeMemory(message, embedding)   → Upsert into Pinecone
-7. Optional: summarize(context)      → LLM call via OpenAI/Claude/Grok
-8. Return: { context, messageId, retrievedCount, summary }
-```
-
-#### Chunking Strategy
-
-**None** — messages stored as atomic units. No sub-document splitting. This works for conversational memory but would not work for Relay's CONTEXT.md files which can be multi-page. **Relay needs chunking** (by section, paragraph, or sliding window).
-
-#### Retrieval Configuration (per user)
-
-| Setting | Default | Range | Purpose |
-|---------|---------|-------|---------|
-| `topK` | 5 | 1-20 | Number of similar results to retrieve |
-| `scoreThreshold` | 0.0 | 0-1 | Minimum cosine similarity to include |
-
-### 23.4 API Routes — Complete Endpoint Map
-
-| Method | Path | Purpose | Auth | Rate Limit |
-|--------|------|---------|------|------------|
-| GET/POST | `/api/auth/[...nextauth]` | NextAuth session management | None (handler) | — |
-| POST | `/api/keys` | Save/update encrypted API key | Session | — |
-| GET | `/api/keys` | List user's keys (metadata only) | Session | — |
-| DELETE | `/api/keys` | Remove API key | Session | — |
-| POST | `/api/memory/query` | **Core memory broker** | Session | 100/mo free, 10K/mo pro |
-| GET | `/api/settings` | Get user settings | Session | — |
-| POST | `/api/settings` | Update user settings | Session | — |
-| GET | `/api/prompt-history` | Fetch prompt change audit trail | Session | — |
-| POST | `/api/stripe/checkout` | Create Stripe checkout session | Session | — |
-| POST | `/api/stripe/portal` | Create billing portal session | Session | — |
-| POST | `/api/stripe/webhook` | Handle Stripe webhook events | Signature | — |
-| GET | `/api/subscription` | Get user subscription status | Session | — |
-| GET | `/api/usage` | Get monthly usage stats | Session | — |
-
-#### Auth Pattern (every protected route)
-
-```typescript
-const session = await getServerSession(authOptions);
-if (!session?.user?.id) {
-  return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-}
-```
-
-### 23.5 Auth & Subscription System
-
-#### Authentication
-
-- **Provider:** NextAuth.js with CredentialsProvider (email-only, no password in MVP)
-- **Strategy:** JWT with 30-day max age
-- **Auto-creation:** Users auto-created on first sign-in
-- **Session access:** `getServerSession(authOptions)` server-side; `useSession()` client-side
-- **Supabase role split:** `supabaseAdmin` (service_role, server-only) and `supabaseClient` (anon, client-side)
-
-#### Stripe Billing
-
-- **Plans:** Free (100 queries/month), Pro (10,000 queries/month)
-- **Checkout:** Stripe hosted checkout with redirect back to `/dashboard`
-- **Webhook events:** `customer.subscription.created/updated/deleted`, `invoice.payment_succeeded/failed`
-- **Usage metering:** `increment_user_usage()` called after each successful memory query
-- **Lazy Stripe client:** Created on first access, not at module load (builds succeed without STRIPE_SECRET_KEY)
-
-### 23.6 Encryption & Security
-
-#### API Key Encryption
-
-- **Algorithm:** AES-256-GCM with authenticated encryption
-- **IV:** 16 bytes random per encryption
-- **Auth tag:** 16 bytes for GCM authentication
-- **Storage format:** Base64(IV + ciphertext + authTag)
-- **Key requirement:** `ENCRYPTION_KEY` env var, 32 bytes hex-encoded
-- **Functions:** `encryptAPIKey(plainText)`, `decryptAPIKey(cipherText)`, `maskAPIKey(key)` (shows first 4 + last 4)
-
-**Relay reuse:** This encryption pattern can be lifted directly for any encrypted-at-rest fields in the Context Core (e.g., API keys for embedding providers, webhook secrets).
-
-### 23.7 Frontend & Component Library
-
-#### Design System
-
-- **Theme:** Dark-first glassmorphic (background #0B0B0D, glass panels with `backdrop-blur-md`)
-- **Color palette:** Indigo (#8B5CF6) → Pink (#EC4899) → Cyan (#06B6D4) gradient
-- **Font:** Inter (Google Fonts)
-
-#### Reusable Components (`src/components/`)
-
-| Component | Description | Relay Reuse Potential |
-|-----------|-------------|---------------------|
-| `GlassPanel` | Glassmorphic container with backdrop blur, hover glow, fade-in | Direct lift for Phase 3 frontend |
-| `GradientHeading` | Rainbow gradient text, polymorphic `as` prop | Direct lift |
-| `GradientBackground` | Fixed backdrop with 8 radial gradient blobs + noise texture | Direct lift |
-| `Button` | Variants (primary/secondary/ghost), loading spinner, gradient | Direct lift |
-| `Input` | Glass-styled, gradient border on focus, error display | Direct lift |
-| `FadeInSection` | Scroll-triggered fade-in via IntersectionObserver | Direct lift |
-| `SubscriptionPanel` | Plan info, usage bar, upgrade CTA | Pattern reference for Relay billing |
-| `AddKeyModal` | Modal for BYO API key entry with provider selection | Pattern reference |
-| `MobileMenu` | Hamburger with glass sidebar | Direct lift |
-| `TestPlayground` | Interactive API testing interface | Pattern reference for Relay testing |
-| `CostCalculator` | Monthly cost estimator | Adapt for Relay pricing |
-
-### 23.8 What Maps to Relay's Context Core
-
-| InstantRecall Concept | Relay Context Core Equivalent | Notes |
-|----------------------|-------------------------------|-------|
-| Memory (message + embedding) | Context Package (CONTEXT.md + embedding) | Relay packages are richer — include manifest, cdiff, deliverables |
-| Session (sessionId) | Relay Session (session table) | InstantRecall sessions are implicit (just a filter key). Relay sessions are first-class with lifecycle |
-| Memory retrieval (cosine search) | `search_context()` pgvector function | Same embedding model (text-embedding-3-small, 1536 dims), different storage (pgvector vs Pinecone) |
-| Summarization | Orchestrator synthesis | InstantRecall summarizes individual message context. Relay synthesizes across the entire project graph |
-| User settings | Project settings | Per-user in InstantRecall → per-project in Relay |
-| Usage metering | Not in Phase 1 scope | But the UPSERT metering pattern is reusable |
-| API key management | Relay actor credentials | Same encryption pattern applicable |
-
-### 23.9 Directly Liftable Code
-
-These files can be copied and adapted with minimal changes:
-
-| File | What It Provides | Adaptation Needed |
-|------|-----------------|-------------------|
-| `src/lib/encryption.ts` | AES-256-GCM encrypt/decrypt | None — drop-in reusable |
-| `src/lib/supabase.ts` | Dual client initialization (admin + anon) | Update env var names to `RELAY_SUPABASE_*` |
-| `src/lib/openai.ts` (embedding functions) | `generateEmbedding()` with text-embedding-3-small | Wrap in `@relay/core` embedding module |
-| `src/db/usage-functions.sql` | `increment_user_usage()`, `get_current_usage()` | Adapt for Relay package deposit counting |
-| `src/components/GlassPanel.tsx` | Glass container component | Move to `@tensorpunk/ui` |
-| `src/components/GradientHeading.tsx` | Gradient text component | Move to `@tensorpunk/ui` |
-| `src/components/GradientBackground.tsx` | Backdrop component | Move to `@tensorpunk/ui` |
-| `src/components/Button.tsx` | Button variants | Move to `@tensorpunk/ui` |
-| `src/components/Input.tsx` | Glass input | Move to `@tensorpunk/ui` |
-| `src/components/FadeInSection.tsx` | Scroll animation | Move to `@tensorpunk/ui` |
-| Auth pattern (session check) | `getServerSession()` + 401 guard | Same pattern for Relay API routes (Phase 2 multi-user) |
-
-### 23.10 Patterns Worth Adopting
-
-1. **Multi-provider abstraction** — InstantRecall supports OpenAI, Claude, and Grok for summarization via a `summarization_provider` field that routes to the correct client. Relay's Orchestrator should adopt this pattern for flexibility in synthesis model selection.
-
-2. **Lazy client initialization** — Stripe client created on first use, not at import. Prevents build failures when optional env vars are missing. Apply to any optional Relay service integration.
-
-3. **UPSERT metering** — `increment_user_usage()` uses `ON CONFLICT DO UPDATE SET query_count = query_count + 1`. Concurrent-safe, no race conditions. Lift directly for Relay deposit counting.
-
-4. **Audit trail via triggers** — `save_prompt_history()` trigger auto-captures settings snapshots to a history table when the custom_prompt field changes. Apply to Relay for package status transitions — auto-log who changed what and when.
-
-5. **Constraint-based validation** — Business rules enforced at the DB level via CHECK constraints (not just app-level validation). Relay should do the same for package status transitions, actor types, etc.
-
-6. **Dual Supabase client pattern** — `supabaseAdmin` (service_role, bypasses RLS) for server-side operations + `supabaseClient` (anon, respects RLS) for client-side. Relay should use the same split.
-
-7. **Service role bypass with explicit GRANT** — When RLS policies don't work cleanly with third-party auth (NextAuth), the pattern of disabling RLS on specific tables and handling auth in the API layer is pragmatic. Document this decision explicitly when used.
-
-### 23.11 Key Architectural Differences (InstantRecall vs Relay)
-
-| Dimension | InstantRecall | Relay |
-|-----------|--------------|-------|
-| **Scope** | Personal memory for chatbots | Multi-actor project context flow |
-| **Vector storage** | External Pinecone (BYO) | Supabase pgvector (co-located) |
-| **Chunking** | None (atomic messages) | Required (CONTEXT.md sections, decisions, questions) |
-| **Context unit** | Single message embedding | Context Package (manifest + CONTEXT.md + cdiff + deliverables) |
-| **Retrieval** | Message-level cosine search | Multi-content-type search (context_md, decision, question, handoff) |
-| **Auth (Phase 1)** | NextAuth + JWT | API key auth (single developer) |
-| **Auth (Phase 2)** | N/A | Supabase Auth + team management |
-| **Session model** | Implicit (filter key) | First-class entity with lifecycle events |
-| **Summarization** | Per-message, optional | Per-project synthesis via Orchestrator |
-| **Graph structure** | Flat (no hierarchy) | DAG with parent/child packages + dependencies |
-| **Billing** | Stripe per-query metering | Not in Phase 1 scope |
-
-### 23.12 Integration Recommendations
-
-#### Phase 1: Shared Embedding Infrastructure
-
-Both InstantRecall and Relay use `text-embedding-3-small` at 1536 dimensions. Extract the embedding generation code into a shared module that both can consume:
-
-```typescript
-// @relay/core or shared util
-export async function generateEmbedding(text: string, apiKey: string): Promise<number[]> {
-  // OpenAI text-embedding-3-small, 1536 dims
-  // Currently duplicated in InstantRecall's src/lib/openai.ts
-}
-```
-
-#### Phase 2: InstantRecall as Personal Memory Layer
-
-Per RELAY_SPEC.md §11, InstantRecall remains the **personal, cross-session memory layer**. The integration protocol:
-
-1. **Session start:** Relay calls InstantRecall API to hydrate personal context → then pulls project context from Context Core
-2. **Session end:** Session-level learnings optionally written to InstantRecall
-3. **Orchestrator:** Can query InstantRecall for long-term individual patterns
-
-#### Phase 3: Unified Frontend
-
-The glassmorphic component library from InstantRecall should be extracted to `@tensorpunk/ui` and shared between:
-- InstantRecall dashboard
-- Relay frontend (graph view, review queue, orchestrator reports)
-- AgentDashboard (Phase 2+ re-backend)
-
-### 23.13 Environment Variables Required by InstantRecall
-
-For reference when integrating:
-
-```
-# Supabase
-SUPABASE_URL=
-SUPABASE_SERVICE_KEY=          # SECRET
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
-
-# Auth
-NEXTAUTH_SECRET=               # openssl rand -base64 32
-NEXTAUTH_URL=
-
-# Encryption
-ENCRYPTION_KEY=                # openssl rand -hex 32 (32 bytes)
-
-# OpenAI (centralized embeddings)
-OPENAI_API_KEY=                # InstantRecall's own key
-
-# Stripe
-STRIPE_SECRET_KEY=
-STRIPE_WEBHOOK_SECRET=
-STRIPE_PRO_PRICE_ID=
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=
-NEXT_PUBLIC_STRIPE_PRO_PRICE_ID=
-```
-
+It's also the feature that makes multi-modal, voice-driven, personality-rich agent experiences portable across any Relay-connected setup — because the voice and personality logic lives in the Core, not inside bespoke agent harness code.
 ---
 
 *This document is a living spec. It should be updated as design decisions are made and the system evolves. Every major architectural decision should be logged in §19.*
 
-*Relay v0.1 — R&D Phase — April 2025 | Last updated: April 2026 (added §20–22: Lattice, External Systems unification, Rules Engine; §23: InstantRecall Deep Analysis)*
+*Relay — public specification.*

@@ -438,7 +438,7 @@ v0.2: poll-based. `--interval` default 30s. Between polls, keep cursor in memory
 
 ## 8. Risks and mitigations
 
-**Live dogfooding.** Jordan runs Relay during the refactor. Session A touches every write path. Mitigation: worktree branch; reads-only against live DB first; write-path changes use throwaway `proj_refactor_smoke` before touching `proj_dev_relay`. Take a `relay backup` before Session A starts; verify it's still readable via restore dry-run after each session.
+**Live dogfooding.** The maintainer runs Relay against a live DB during the refactor. Session A touches every write path. Mitigation: worktree branch; reads-only against live DB first; write-path changes use throwaway `proj_refactor_smoke` before touching the primary project. Take a `relay backup` before Session A starts; verify it's still readable via restore dry-run after each session.
 
 **Test coverage gap.** No `*.test.*` files in `packages/core` or `packages/cli` today. Proposed minimum smoke tests (plain `node --test`, no framework dependency):
 - `packages/core/src/storage/supabase.test.ts` — mocks `SupabaseClient` stub; verifies every `RelayStorage` method produces expected call sequence.

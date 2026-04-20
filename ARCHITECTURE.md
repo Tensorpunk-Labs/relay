@@ -13,7 +13,7 @@ Relay is a **context flow protocol** — infrastructure for persistent, shared c
 │  ┌──────────────────┐    ┌──────────────────┐               │
 │  │ Claude Code       │    │ Claude Code       │              │
 │  │ Session A         │    │ Session B         │              │
-│  │ (NeuralDistortion)│    │ (LatentSampler)   │              │
+│  │ (Project α)       │    │ (Project β)       │              │
 │  └────────┬──────────┘    └────────┬──────────┘              │
 │           │                        │                          │
 │           ▼                        ▼                          │
@@ -73,9 +73,9 @@ context-package-{id}.relay.zip
 ## Key Design Decisions
 
 1. **CLI-first, MCP wraps CLI** — Testable independently, humans and agents share same logic
-2. **pnpm workspaces** — Internal monorepo structure, consistent with Tensorpunk patterns
-3. **Supabase + Vercel** — Proven stack from MoonShot, same operational model
-4. **API key auth for Phase 1** — Single developer, no user management complexity
+2. **pnpm workspaces** — Monorepo structure keeps shared business logic in `@relay/core`
+3. **Supabase + Vercel** — Proven serverless Postgres + edge function stack
+4. **API key auth for Phase 1** — Single-developer default, multi-actor auth comes later
 5. **IVFFlat for pgvector** — Simple, good enough for <10K packages. HNSW if needed later
 6. **OpenAI text-embedding-3-small** — Proven, cheap, 1536 dims for semantic search
 7. **Context diff (.cdiff)** — Structured delta between packages, not just git diff
@@ -94,8 +94,8 @@ Key tables:
 
 ## Integration Points
 
-- **Global CLAUDE.md**: Auto-bootstraps every Claude Code session into the Relay protocol
+- **Global agent instruction file**: Auto-bootstraps every Claude Code session into the Relay protocol
 - **Stop hook**: Auto-deposits context on session end (`relay deposit --auto`)
 - **relay-mcp**: Registered as MCP server so agents use Relay natively
-- **AgentDashboard**: Phase 1 read-only integration via `/api/relay/status`
-- **External Systems/Agent**: `notify-agent.ps1` extended to also trigger `relay deposit`
+- **Dashboard**: Read-only project + package view via the API / `apps/web`
+- **External agents**: Any agent runner can trigger `relay deposit` on task completion

@@ -16,7 +16,7 @@ export interface DigestResult {
  * Assemble project context for synthesis.
  *
  * This does NOT call an external AI — it gathers and structures all the data
- * so the calling agent (Claude Code, Agent, etc.) can synthesize it directly.
+ * so the calling agent (Claude Code, custom agents, etc.) can synthesize it directly.
  * The agent running this IS the orchestrator.
  */
 export async function assembleProjectDigest(
