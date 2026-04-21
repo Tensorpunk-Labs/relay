@@ -4,9 +4,10 @@ import dynamic from 'next/dynamic';
 
 const BrainCore = dynamic(() => import('@/components/BrainCore'), { ssr: false });
 
-// Chromeless, transparent embed. Designed to be iframed as a backdrop
-// layer behind the landing's hero card — the host page provides its own
-// background gradient and the brain floats on top of it.
+// Chromeless, transparent, zoomed-in embed for use as a compact visual
+// flourish (iframed inside the landing's hero card above the wordmark).
+// cameraZ + autoRotate give it life in a small frame without relying on
+// the visitor to drag the camera around.
 export default function HeroEmbed() {
   return (
     <div
@@ -17,7 +18,7 @@ export default function HeroEmbed() {
         background: 'transparent',
       }}
     >
-      <BrainCore windowDays={14} includeArchived={false} />
+      <BrainCore windowDays={14} includeArchived={false} cameraZ={2.6} fov={40} autoRotate={true} />
     </div>
   );
 }

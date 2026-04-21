@@ -729,12 +729,28 @@ function BrainMesh({ hoveredProject, setHoveredProject, onClickProject, windowDa
   );
 }
 
-export default function BrainCore({ onClickProject, windowDays = 14, onWindowChange, includeArchived = false }: { onClickProject?: (id: string) => void; windowDays?: number; onWindowChange?: (days: number) => void; includeArchived?: boolean } = {}) {
+export default function BrainCore({
+  onClickProject,
+  windowDays = 14,
+  onWindowChange,
+  includeArchived = false,
+  cameraZ = 3,
+  fov = 50,
+  autoRotate = false,
+}: {
+  onClickProject?: (id: string) => void;
+  windowDays?: number;
+  onWindowChange?: (days: number) => void;
+  includeArchived?: boolean;
+  cameraZ?: number;
+  fov?: number;
+  autoRotate?: boolean;
+} = {}) {
   const [hoveredProject, setHoveredProject] = useState<string | null>(null);
 
   return (
     <div className="w-full h-full overflow-hidden relative">
-      <Canvas camera={{ position: [0, 0.15, 3], fov: 50 }} gl={{ alpha: true }}>
+      <Canvas camera={{ position: [0, 0.15, cameraZ], fov }} gl={{ alpha: true }}>
         <BrainMesh hoveredProject={hoveredProject} setHoveredProject={setHoveredProject} onClickProject={onClickProject} windowDays={windowDays} includeArchived={includeArchived} />
         <OrbitControls
           enableZoom={true}
@@ -745,7 +761,8 @@ export default function BrainCore({ onClickProject, windowDays = 14, onWindowCha
             MIDDLE: THREE.MOUSE.DOLLY,
             RIGHT: THREE.MOUSE.PAN,
           }}
-          autoRotate={false}
+          autoRotate={autoRotate}
+          autoRotateSpeed={0.6}
           minDistance={1.2}
           maxDistance={8}
           zoomSpeed={0.5}
