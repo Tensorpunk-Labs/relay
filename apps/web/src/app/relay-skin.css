@@ -94,6 +94,11 @@ body {
   gap: var(--rs-spacing);
   padding: 0 28px 28px;
   max-width: 1440px;
+  /* Stretch to the available width (bounded by max-width) rather than
+     shrinking to content. Without this, a data-sparse dashboard (e.g.
+     local dev before MOCK_DATA is set, or an empty Supabase) collapses
+     to a narrow column with big black gutters on either side. */
+  width: 100%;
   margin: 0 auto;
 }
 
