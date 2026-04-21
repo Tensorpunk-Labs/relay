@@ -1,5 +1,16 @@
 # Relay
 
+> ### ⭐ #1 on LongMemEval retrieval
+>
+> | Metric | Score |
+> |---|---|
+> | **Oracle** recall@5 | **100.0%** (500/500) — highest published |
+> | **S-variant** recall@5 | **97.0%** (485/500) — highest published |
+> | **Oracle** end-to-end QA | **92.2%** (461/500, GPT-4o judge) |
+> | **S-variant** end-to-end QA | **84.8%** (424/500, GPT-4o judge) |
+>
+> Full methodology, comparison table, and how to reproduce: [relaymemory.com/benchmarks](https://relaymemory.com/benchmarks) · harness in [`benchmarks/longmemeval/`](benchmarks/longmemeval/).
+
 **Relay is the reference implementation of the [Agentic Protocol](docs/AGENTIC_PROTOCOL.md) — an open specification for how humans and AI agents exchange enriched context across sessions, tools, and vendors.**
 
 When you finish a coding session, the context you built up — decisions made, dead-ends ruled out, the reasoning behind a choice — lives in your head and your chat log. The next session (yours or another agent's) starts cold. Relay fixes that: every session can deposit a structured context package on exit, and any future session can pull the latest state to start oriented.
@@ -148,7 +159,19 @@ Topics covered: wire format, interaction model, transport, storage independence,
 
 ## Benchmarks
 
-Retrieval quality is tracked in [`benchmarks/longmemeval/`](benchmarks/longmemeval/). The harness runs LongMemEval-style prompts against a seeded Relay instance and reports Recall@k. Current targets and methodology are documented in the benchmark README.
+Relay leads retrieval on **LongMemEval**, the broadest public benchmark for long-context conversational memory. Numbers at the top of this README; full methodology, comparison table (vs MemPalace, AgentMemory, OMEGA), and reproduction steps at [relaymemory.com/benchmarks](https://relaymemory.com/benchmarks).
+
+The harness lives in [`benchmarks/longmemeval/`](benchmarks/longmemeval/). Retrieval uses hybrid BM25 + semantic embeddings (local MiniLM-L6, zero API cost) with a cross-encoder reranker and gradient time-windowing. QA generation is Claude Opus 4.6; QA accuracy is graded by an independent GPT-4o judge — no self-grading. Raw result files from our runs are checked in under `benchmarks/longmemeval/`.
+
+```bash
+cd benchmarks/longmemeval
+pnpm install
+pnpm run fetch:data                              # download the public corpus
+pnpm run bench -- --dataset oracle --topK 5     # retrieval
+pnpm run qa    -- --dataset oracle              # end-to-end QA (needs OPENAI_API_KEY for the judge)
+```
+
+If you re-run and get different numbers, open an issue.
 
 ## Contributing
 
