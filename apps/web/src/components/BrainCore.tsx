@@ -167,6 +167,14 @@ function ClusterEdges({ nodes, indices, time, hoveredProject, projectId, color }
 
   const geometry = useMemo(() => {
     const edges: [number, number][] = [];
+    // 1- and 2-node clusters get a ClusterShape marker above the cluster
+    // instead of in-cluster edges; drawing the single 2-node line was
+    // redundant with the dumbbell marker and read as a stray "extra line".
+    if (indices.length < 3) {
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(0), 3));
+      return geo;
+    }
     for (let i = 0; i < indices.length; i++) {
       for (let j = i + 1; j < indices.length; j++) {
         if (nodes[indices[i]].position.distanceTo(nodes[indices[j]].position) < 0.7) {
@@ -207,14 +215,16 @@ function ClusterEdges({ nodes, indices, time, hoveredProject, projectId, color }
 }
 
 /**
- * ClusterShape — a small geometric marker that sits above each project
- * cluster. Reads the project's package count at a glance:
+ * ClusterShape — a small geometric marker that sits above project
+ * clusters that are too small for ClusterEdges to render anything
+ * meaningful. Fills the visual gap only for 1- and 2-package clusters:
  *   1 package  → single dot
  *   2 packages → two dots joined by a line (a dumbbell)
- *   3+         → N-sided polygon (capped at 10 sides for legibility)
  *
- * Without this, clusters with <3 packages had no visible shape because
- * ClusterEdges needs pairs of nearby nodes to draw any line at all.
+ * For 3+ packages the natural interconnected-node mesh drawn by
+ * ClusterEdges already reads as a shape; adding another marker on top
+ * was visually redundant (looked like an orphan circle/polygon floating
+ * above an already-visible cluster).
  */
 function ClusterShape({
   pid,
@@ -229,22 +239,9 @@ function ClusterShape({
   count: number;
   hoveredProject: string | null;
 }) {
-  const lineRef = useRef<THREE.LineSegments | THREE.LineLoop>(null);
+  const lineRef = useRef<THREE.LineSegments>(null);
   const isHovered = hoveredProject === pid;
   const isDimmed = hoveredProject !== null && !isHovered;
-
-  // Polygon geometry for 3+ packages (capped at 10 sides).
-  const polygonGeometry = useMemo(() => {
-    if (count < 3) return null;
-    const size = 0.22;
-    const segments = Math.min(count, 10);
-    const pts: THREE.Vector3[] = [];
-    for (let i = 0; i < segments; i++) {
-      const angle = (i / segments) * Math.PI * 2 - Math.PI / 2;
-      pts.push(new THREE.Vector3(size * Math.cos(angle), size * Math.sin(angle), 0));
-    }
-    return new THREE.BufferGeometry().setFromPoints(pts);
-  }, [count]);
 
   // Dumbbell connector for exactly 2 packages.
   const dumbbellGeometry = useMemo(() => {
@@ -263,6 +260,9 @@ function ClusterShape({
       mat.opacity = isDimmed ? 0.12 : isHovered ? 0.95 : 0.55;
     }
   });
+
+  // 3+ packages: defer entirely to ClusterEdges — no marker.
+  if (count >= 3) return null;
 
   const dotOpacity = isDimmed ? 0.25 : isHovered ? 1.0 : 0.8;
   const dotSize = 0.045;
@@ -286,16 +286,11 @@ function ClusterShape({
             <meshBasicMaterial color={color} transparent opacity={dotOpacity} />
           </mesh>
           {dumbbellGeometry && (
-            <lineSegments ref={lineRef as React.RefObject<THREE.LineSegments>} geometry={dumbbellGeometry}>
+            <lineSegments ref={lineRef} geometry={dumbbellGeometry}>
               <lineBasicMaterial color={color} transparent opacity={0.55} />
             </lineSegments>
           )}
         </>
-      )}
-      {count >= 3 && polygonGeometry && (
-        <lineLoop ref={lineRef as React.RefObject<THREE.LineLoop>} geometry={polygonGeometry}>
-          <lineBasicMaterial color={color} transparent opacity={0.55} />
-        </lineLoop>
       )}
     </group>
   );
