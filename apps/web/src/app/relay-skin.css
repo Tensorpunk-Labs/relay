@@ -145,6 +145,34 @@ body {
   gap: 8px;
 }
 
+.rs-topbar-nav {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  font-family: var(--rs-font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+.rs-topbar-nav a {
+  color: var(--rs-text);
+  text-decoration: none;
+  transition: color 0.15s;
+  white-space: nowrap;
+}
+.rs-topbar-nav a:hover {
+  color: var(--rs-accent-cyan);
+}
+
+@media (max-width: 960px) {
+  .rs-topbar-nav { display: none; }
+}
+
 .rs-topbar-status {
   display: flex;
   align-items: center;

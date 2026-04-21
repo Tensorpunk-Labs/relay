@@ -27,15 +27,22 @@ export default function Home() {
     <>
       <CoreShader />
       <main className="rs-viewport">
-        {/* Topbar */}
+        {/* Topbar — brand links back to the landing; nav provides a way
+            out to the rest of the Relay site since this dashboard sits
+            behind relaymemory.com/dashboard via Vercel rewrite. */}
         <header className="rs-topbar">
-          <div className="rs-topbar-brand">
+          <a href="https://relaymemory.com/" className="rs-topbar-brand" style={{ textDecoration: 'none', color: 'inherit' }}>
             <OrbitalLogo size={36} />
             <span className="rs-brand-text">// RELAY CORE</span>
-          </div>
-          <div className="rs-topbar-center">
-            <span className="rs-zone-label">CONTEXT FLOW PROTOCOL</span>
-          </div>
+          </a>
+          <nav className="rs-topbar-nav" aria-label="Relay sections">
+            <a href="https://relaymemory.com/">Home</a>
+            <a href="https://relaymemory.com/setup/">Setup</a>
+            <a href="https://relaymemory.com/cli/">CLI</a>
+            <a href="https://relaymemory.com/protocol/">Protocol</a>
+            <a href="https://relaymemory.com/benchmarks/">Benchmarks</a>
+            <a href="https://relaymemory.com/#waitlist">Waitlist</a>
+          </nav>
           <div className="rs-topbar-status">
             <span className="rs-led rs-led-on" />
             <span>LIVE</span>
