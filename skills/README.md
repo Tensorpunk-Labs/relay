@@ -42,7 +42,7 @@ If you prefer not to link globally, the skill will use the node path form automa
 
 ## Alternative: global agent instructions
 
-If you'd rather have Relay always-on (rather than on-demand via the skill), add the contents of `skills/using-relay/SKILL.md` to your global `CLAUDE.md` (or project-level `CLAUDE.md`). That bootstraps every session into Relay without needing to trigger the skill.
+If you'd rather have Relay always-on (rather than on-demand via the skill), paste the [CLAUDE.md snippet](../docs/CLAUDE_MD_SNIPPET.md) into your global `CLAUDE.md` (or a project-level one). That bootstraps every session into Relay without needing to trigger the skill.
 
 The skill form is lighter (loads only when needed); the CLAUDE.md form is always-on. Pick the one that matches your workflow.
 

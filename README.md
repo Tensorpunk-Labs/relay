@@ -140,6 +140,8 @@ relay/
 
 There's an opt-in skill in [`skills/using-relay/`](skills/using-relay/) that teaches the agent how to use the CLI + MCP tools — deposit proactively, pull context at session start, orient against prior sessions. Install it by copying the skill folder into `~/.claude/skills/` (see [`skills/README.md`](skills/README.md) for details). It's not required — the MCP server alone already gives agents full access.
 
+Prefer always-on guidance over on-demand? Paste the [CLAUDE.md snippet](docs/CLAUDE_MD_SNIPPET.md) into your own global or project `CLAUDE.md` and every Claude Code session will boot oriented through Relay.
+
 ### Dashboard
 
 `apps/web` is a Next.js dashboard for browsing context packages, project health, and session timelines. Run it locally with `pnpm --filter @relay/web dev`. It reads from the same storage backend your CLI and MCP server use.
