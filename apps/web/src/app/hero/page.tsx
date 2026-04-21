@@ -2,12 +2,11 @@
 
 import dynamic from 'next/dynamic';
 
-const CoreShader = dynamic(() => import('@/components/CoreShader'), { ssr: false });
 const BrainCore = dynamic(() => import('@/components/BrainCore'), { ssr: false });
 
-// Chromeless page — rendered full-bleed so the landing can iframe it
-// as a living visual backdrop above the hero card. No topbar, no stats,
-// no controls. The background waves + the 3D cortex carry the whole thing.
+// Chromeless, transparent embed. Designed to be iframed as a backdrop
+// layer behind the landing's hero card — the host page provides its own
+// background gradient and the brain floats on top of it.
 export default function HeroEmbed() {
   return (
     <div
@@ -15,19 +14,10 @@ export default function HeroEmbed() {
         position: 'fixed',
         inset: 0,
         overflow: 'hidden',
-        background: 'var(--rs-bg, #0a0c10)',
+        background: 'transparent',
       }}
     >
-      <CoreShader />
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          pointerEvents: 'auto',
-        }}
-      >
-        <BrainCore windowDays={14} includeArchived={false} />
-      </div>
+      <BrainCore windowDays={14} includeArchived={false} />
     </div>
   );
 }
