@@ -3,7 +3,15 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from './supabase';
 import type { PackageRow, ProjectRow, SessionRow } from './supabase';
-import { MOCK_PROJECTS, MOCK_PACKAGES, MOCK_SESSIONS, LIVE_FEED_POOL } from './mockData';
+import { MOCK_PROJECTS, MOCK_PACKAGES, MOCK_SESSIONS, LIVE_FEED_POOL, CALLSIGN_BY_SESSION_ID } from './mockData';
+
+// Map live-feed packages back to the active session for their project so
+// their callsign shows on the Timeline alongside the spaceship-themed data.
+const LIVE_FEED_SESSION_BY_PROJECT: Record<string, string> = Object.fromEntries(
+  MOCK_SESSIONS.filter((s) => !s.ended_at).map((s) => [s.project_id, s.id]),
+);
+
+export { CALLSIGN_BY_SESSION_ID };
 
 const USE_MOCK = (process.env.NEXT_PUBLIC_MOCK_DATA ?? '').trim() === 'true';
 
@@ -36,7 +44,9 @@ function startMockFeed() {
       parent_package_id: null,
       created_by_type: template.actor_type ?? 'agent',
       created_by_id: template.actor_id ?? 'cargo_AI_orion',
-      session_id: null,
+      session_id: template.artifact_type === 'auto-deposit'
+        ? null
+        : LIVE_FEED_SESSION_BY_PROJECT[template.project_id] ?? null,
       tags: template.tags ?? [],
       open_questions: template.questions ?? [],
       decisions_made: template.decisions ?? [],

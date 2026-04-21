@@ -12,7 +12,7 @@ Use the skill if you want Relay to stay out of the way until needed. Use this sn
 Relay is the context layer for this project. Every session should orient against it on start and deposit meaningful state on exit.
 
 **How:**
-- `relay_pull_context` (MCP) or `relay pull --latest` (CLI) at session start.
+- `relay_session_orient` (MCP) at session start — returns the project snapshot AND your run's **callsign** (a Docker-style adjective-noun name like `coral-heron`). Announce the callsign in your first reply so the operator can reference this run later.
 - `relay_deposit` proactively at significant moments — major decisions, milestones, direction-changing discoveries, handoffs.
 - Use `relay_orchestrate` when you need a broader view across recent sessions.
 

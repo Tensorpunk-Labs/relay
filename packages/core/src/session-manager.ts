@@ -6,6 +6,9 @@ export interface SessionState {
   project_id: string;
   actor_id: string;
   actor_type: 'agent' | 'human';
+  /** Docker-style adjective-noun identifier for this run. Optional for
+   *  pre-callsign sessions restored from disk. */
+  callsign?: string;
   started_at: string;
   packages_pulled: string[];
   packages_deposited: string[];

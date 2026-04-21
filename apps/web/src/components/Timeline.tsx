@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { usePackages } from '@/lib/hooks';
+import { usePackages, useSessions } from '@/lib/hooks';
 
 const statusLed: Record<string, string> = {
   complete: 'rs-led rs-led-emerald',
@@ -36,7 +36,18 @@ function timeAgo(iso: string): string {
 
 export default function Timeline() {
   const { packages, loading } = usePackages();
+  const { sessions } = useSessions();
   const [showAuto, setShowAuto] = useState(false);
+
+  // session_id → callsign lookup. Rebuilds whenever the session list
+  // changes; constant-time during Timeline rendering.
+  const callsignBySession = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const s of sessions) {
+      if (s.callsign) m.set(s.id, s.callsign);
+    }
+    return m;
+  }, [sessions]);
 
   // Use artifact_type field for auto-deposit detection, with fallback to title
   // prefix for packages that haven't been backfilled yet.
@@ -121,6 +132,22 @@ export default function Timeline() {
                     <span>
                       {actorIcons[pkg.created_by_type] || ''} {pkg.created_by_id}
                     </span>
+                    {pkg.session_id && callsignBySession.has(pkg.session_id) && (
+                      <>
+                        <span className="rs-text-faint">·</span>
+                        <span
+                          className="rs-pill"
+                          title={`Session callsign: ${callsignBySession.get(pkg.session_id)}`}
+                          style={{
+                            color: 'var(--rs-accent-cyan)',
+                            borderColor: 'rgba(0, 221, 255, 0.25)',
+                            background: 'rgba(0, 221, 255, 0.06)',
+                          }}
+                        >
+                          {callsignBySession.get(pkg.session_id)}
+                        </span>
+                      </>
+                    )}
                     <span className="rs-text-faint">·</span>
                     <span className="rs-text-mono uppercase tracking-wider">
                       {pkg.project_id.replace('proj_dev_', '')}

@@ -21,12 +21,14 @@ Check for `~/.relay/config.json`. If it doesn't exist, walk the user through set
 
 If config already exists, skip this section.
 
-## 2. Session start — pull context
+## 2. Session start — orient + greet with your callsign
 
 At the beginning of any working session, orient yourself:
 
-- MCP form (preferred when available): call the `relay_pull_context` tool
-- CLI form: `relay pull --latest` (or `relay pull --project <id> --latest`)
+- MCP form (preferred when available): call the `relay_session_orient` tool. It returns the project snapshot **plus a callsign** — a Docker-style adjective-noun name for this run (e.g. `coral-heron`, `molten-fox`). The tool's output leads with a line like *"this run is `coral-heron`"*.
+- CLI form: `relay pull --latest` (or `relay pull --project <id> --latest`) + `relay session start` to get a callsign explicitly.
+
+**Announce your callsign in your first reply** so the operator can reference this run later ("what did coral-heron decide about X?"). Every deposit you make will be traceable back to this callsign via the session record — it's the audit hook across time.
 
 Read what the previous session left. State **one sentence** summarizing it to the user so they know you're oriented.
 

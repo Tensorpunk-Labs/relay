@@ -150,6 +150,8 @@ export interface SessionInsert {
   actor_type: ActorType;
   actor_id: string;
   agent_description?: string;
+  /** Docker-style adjective-noun identifier for audit; client generates. */
+  callsign?: string;
   packages_pulled?: string[];
   packages_deposited?: string[];
   /** ISO timestamp. If omitted, adapter picks `now()`. */

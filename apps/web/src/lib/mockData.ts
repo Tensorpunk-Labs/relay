@@ -758,6 +758,25 @@ const PKGS: PkgSpec[] = [
   },
 ];
 
+// Map each project to the session callsign currently active in it so
+// KEY/SIG packages from the mock set can be visually attributed. Declared
+// before MOCK_PACKAGES below because `sessionFor` reads this table at
+// module evaluation while building the fixtures.
+const PROJECT_TO_SESSION: Record<string, string> = {
+  proj_oort_resupply: 'sess_oort_001',
+  proj_kepler_mining: 'sess_kepler_001',
+  proj_titan_relay: 'sess_titan_001',
+  proj_europa_survey: 'sess_europa_001',
+  proj_ceres_station: 'sess_ceres_001',
+};
+
+// Link non-auto packages to the active session for their project so the
+// callsign surfaces on the Timeline and the mock feels audit-coherent.
+function sessionFor(p: PkgSpec): string | null {
+  if (p.artifact_type === 'auto-deposit') return null;
+  return PROJECT_TO_SESSION[p.project_id] ?? null;
+}
+
 export const MOCK_PACKAGES: PackageRow[] = PKGS.map((p) => ({
   id: p.id,
   project_id: p.project_id,
@@ -769,7 +788,7 @@ export const MOCK_PACKAGES: PackageRow[] = PKGS.map((p) => ({
   parent_package_id: null,
   created_by_type: p.actor_type ?? 'human',
   created_by_id: p.actor_id ?? 'commander_shepard',
-  session_id: null,
+  session_id: sessionFor(p),
   tags: p.tags ?? [],
   open_questions: p.questions ?? [],
   decisions_made: p.decisions ?? [],
@@ -788,6 +807,7 @@ export const MOCK_SESSIONS: SessionRow[] = [
     project_id: 'proj_oort_resupply',
     actor_type: 'human',
     actor_id: 'chief_vega',
+    callsign: 'coral-heron',
     started_at: minutesAgo(18),
     ended_at: null,
   },
@@ -796,6 +816,7 @@ export const MOCK_SESSIONS: SessionRow[] = [
     project_id: 'proj_kepler_mining',
     actor_type: 'agent',
     actor_id: 'geology_AI_strabo',
+    callsign: 'molten-fox',
     started_at: minutesAgo(52),
     ended_at: null,
   },
@@ -804,6 +825,7 @@ export const MOCK_SESSIONS: SessionRow[] = [
     project_id: 'proj_titan_relay',
     actor_type: 'agent',
     actor_id: 'comms_AI_hermes',
+    callsign: 'quartz-kestrel',
     started_at: hoursAgo(2),
     ended_at: null,
   },
@@ -812,6 +834,7 @@ export const MOCK_SESSIONS: SessionRow[] = [
     project_id: 'proj_europa_survey',
     actor_type: 'human',
     actor_id: 'specialist_amara',
+    callsign: 'jade-albatross',
     started_at: hoursAgo(6),
     ended_at: hoursAgo(1),
   },
@@ -820,10 +843,16 @@ export const MOCK_SESSIONS: SessionRow[] = [
     project_id: 'proj_ceres_station',
     actor_type: 'human',
     actor_id: 'engineer_park',
+    callsign: 'bronze-badger',
     started_at: hoursAgo(12),
     ended_at: hoursAgo(4),
   },
 ];
+
+/** Lookup: session_id → callsign, for Timeline/UI rendering. */
+export const CALLSIGN_BY_SESSION_ID: Record<string, string> = Object.fromEntries(
+  MOCK_SESSIONS.filter((s) => s.callsign).map((s) => [s.id, s.callsign as string]),
+);
 
 // Rotation pool for the simulated live feed. Each entry becomes a fresh
 // package once a minute or so, inserted at the top of the stream so the

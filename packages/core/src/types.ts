@@ -74,6 +74,8 @@ export interface Session {
   project_id: string;
   actor: { type: ActorType; id: string };
   agent_description?: string;
+  /** Docker-style adjective-noun identifier (e.g. "coral-heron") for memorability/audit. */
+  callsign?: string;
   started_at: string;
   ended_at: string | null;
   packages_pulled: string[];

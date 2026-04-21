@@ -19,6 +19,7 @@ import type {
 import { AlreadyInStateError, MetaProjectGuardError, StorageCapabilityError } from './types.js';
 import { buildManifest, buildContextPackage } from './context-package.js';
 import { generatePackageId, generateSessionId } from './manifest.js';
+import { generateCallsign } from './callsign.js';
 import { getGitInfo, getGitDiff, getGitFingerprint } from './git-utils.js';
 import { generateContextMd } from './context-md.js';
 import { SessionManager } from './session-manager.js';
@@ -296,6 +297,7 @@ export class RelayClient {
       actor_type: this.config.actor_type,
       actor_id: this.config.actor_id,
       agent_description: agentDescription,
+      callsign: generateCallsign(),
     });
   }
 

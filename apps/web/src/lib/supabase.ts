@@ -47,6 +47,8 @@ export interface SessionRow {
   project_id: string;
   actor_type: string;
   actor_id: string;
+  /** Docker-style adjective-noun identifier for audit (e.g. "coral-heron"). */
+  callsign: string | null;
   started_at: string;
   ended_at: string | null;
 }

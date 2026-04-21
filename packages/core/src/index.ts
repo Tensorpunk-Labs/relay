@@ -9,6 +9,7 @@ export { inferTopic, inferArtifactType } from './inference.js';
 export { buildManifest, buildContextPackage } from './context-package.js';
 export { generateCdiff } from './cdiff.js';
 export { generatePackageId, generateSessionId, generateDiffId } from './manifest.js';
+export { generateCallsign, isValidCallsign } from './callsign.js';
 export { SessionManager, type SessionState } from './session-manager.js';
 export { getGitInfo, getGitDiff, getGitFingerprint, type GitInfo } from './git-utils.js';
 export { generateContextMd } from './context-md.js';

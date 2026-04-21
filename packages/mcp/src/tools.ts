@@ -186,6 +186,7 @@ export async function registerTools(server: Server) {
             project_id: session.project_id,
             actor_id: 'agent',
             actor_type: 'agent',
+            callsign: session.callsign,
             started_at: session.started_at,
             packages_pulled: [],
             packages_deposited: [],
@@ -356,6 +357,35 @@ export async function registerTools(server: Server) {
         }
 
         case 'relay_session_orient': {
+          // Auto-track a session if the agent hasn't called session_start.
+          // This guarantees every orient produces a callsign the agent can
+          // announce to the user — even for short-run deposit-only flows.
+          let existing = sm.getSession();
+          let autoStarted: { id: string; callsign?: string } | null = null;
+          if (!existing) {
+            try {
+              const fresh = await client.startSession(
+                a.project_id as string | undefined,
+              );
+              sm.startSession({
+                session_id: fresh.id,
+                project_id: fresh.project_id,
+                actor_id: 'agent',
+                actor_type: 'agent',
+                callsign: fresh.callsign,
+                started_at: fresh.started_at,
+                packages_pulled: [],
+                packages_deposited: [],
+                parent_package_id: null,
+              });
+              autoStarted = { id: fresh.id, callsign: fresh.callsign };
+              existing = sm.getSession();
+            } catch {
+              // Non-fatal: orient still works without an active session; the
+              // callsign line simply won't be shown in the bundle.
+            }
+          }
+
           const bundle = await client.getOrientation(
             a.project_id as string | undefined,
             {
@@ -365,9 +395,28 @@ export async function registerTools(server: Server) {
           );
           const format = (a.format as string) || 'markdown';
           if (format === 'json') {
-            return { content: [{ type: 'text' as const, text: JSON.stringify(bundle, null, 2) }] };
+            return {
+              content: [{
+                type: 'text' as const,
+                text: JSON.stringify({
+                  ...bundle,
+                  session: existing ? {
+                    id: existing.session_id,
+                    callsign: existing.callsign,
+                    auto_started: !!autoStarted,
+                  } : undefined,
+                }, null, 2),
+              }],
+            };
           }
-          return { content: [{ type: 'text' as const, text: formatOrientationBundle(bundle) }] };
+          // Markdown: prepend a one-line callsign header so the agent sees
+          // its identity immediately and can greet the operator with it.
+          let text = formatOrientationBundle(bundle);
+          if (existing?.callsign) {
+            const verb = autoStarted ? 'this run is' : 'active run';
+            text = `**${verb} \`${existing.callsign}\`** _(announce to the operator before your first reply)_\n\n` + text;
+          }
+          return { content: [{ type: 'text' as const, text }] };
         }
 
         case 'relay_orchestrate': {

@@ -178,11 +178,12 @@ When present, a Session carries:
 | `project_id` | string | The scope of the session. |
 | `actor_id` | string | The producing actor. |
 | `actor_type` | enum | Actor kind. |
+| `callsign` | string \| null | Human-readable adjective-noun identifier (e.g. `coral-heron`). Implementations SHOULD generate one at session start and encourage agents to announce it to the operator. Memorability aid for audit — not a unique key. |
 | `started_at` | string (RFC 3339) | UTC start. |
 | `ended_at` | string (RFC 3339) \| null | UTC end; null while active. |
 | `packages_deposited` | string[] | Package IDs produced in this session. |
 
-Sessions enable provenance queries ("what did this agent do during this session?") and are useful for replay and audit. They are not required for basic conformance.
+Sessions enable provenance queries ("what did this agent do during this session?") and are useful for replay and audit. The `callsign` field makes those queries natural-language friendly: "what did `coral-heron` decide yesterday?" resolves to a single agent run without the operator having to handle opaque session IDs. Sessions are not required for basic conformance.
 
 ### 5.6 Handoff semantics
 

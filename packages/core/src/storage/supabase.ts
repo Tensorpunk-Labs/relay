@@ -345,6 +345,7 @@ export class SupabaseStorage implements RelayStorage {
         id: String(r.actor_id),
       },
       agent_description: (r.agent_description as string | undefined) ?? undefined,
+      callsign: (r.callsign as string | undefined) ?? undefined,
       started_at: String(r.started_at),
       ended_at: (r.ended_at as string | null) ?? null,
       packages_pulled: (r.packages_pulled as string[]) ?? [],
@@ -360,6 +361,7 @@ export class SupabaseStorage implements RelayStorage {
       actor_id: s.actor_id,
     };
     if (s.agent_description !== undefined) row.agent_description = s.agent_description;
+    if (s.callsign !== undefined) row.callsign = s.callsign;
     if (s.packages_pulled !== undefined) row.packages_pulled = s.packages_pulled;
     if (s.packages_deposited !== undefined) row.packages_deposited = s.packages_deposited;
     if (s.started_at !== undefined) row.started_at = s.started_at;

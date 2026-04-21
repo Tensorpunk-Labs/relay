@@ -26,6 +26,7 @@ export function sessionCommand(): Command {
         project_id: session.project_id,
         actor_id: 'jordan',
         actor_type: 'human',
+        callsign: session.callsign,
         started_at: session.started_at,
         packages_pulled: [],
         packages_deposited: [],
@@ -33,6 +34,7 @@ export function sessionCommand(): Command {
       });
 
       console.log(`Session started: ${session.id}`);
+      if (session.callsign) console.log(`Callsign: ${session.callsign}`);
       console.log(`Project: ${session.project_id}`);
     });
 
@@ -52,6 +54,7 @@ export function sessionCommand(): Command {
       sm.endSession();
 
       console.log(`Session ended: ${session.session_id}`);
+      if (session.callsign) console.log(`Callsign: ${session.callsign}`);
       console.log(`Packages deposited: ${session.packages_deposited.length}`);
     });
 
@@ -67,6 +70,7 @@ export function sessionCommand(): Command {
       }
 
       console.log(`Session: ${session.session_id}`);
+      if (session.callsign) console.log(`Callsign: ${session.callsign}`);
       console.log(`Project: ${session.project_id}`);
       console.log(`Actor: ${session.actor_type}/${session.actor_id}`);
       console.log(`Started: ${session.started_at}`);
