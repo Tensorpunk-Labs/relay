@@ -209,8 +209,8 @@ function ClusterEdges({ nodes, indices, time, hoveredProject, projectId, color }
 /**
  * ClusterShape — a small geometric marker that sits above each project
  * cluster. Reads the project's package count at a glance:
- *   1 package  → smooth circle
- *   2 packages → smooth circle with a centre dot
+ *   1 package  → single dot
+ *   2 packages → two dots joined by a line (a dumbbell)
  *   3+         → N-sided polygon (capped at 10 sides for legibility)
  *
  * Without this, clusters with <3 packages had no visible shape because
@@ -229,22 +229,32 @@ function ClusterShape({
   count: number;
   hoveredProject: string | null;
 }) {
-  const lineRef = useRef<THREE.LineLoop>(null);
-  const dotMatRef = useRef<THREE.MeshBasicMaterial>(null);
+  const lineRef = useRef<THREE.LineSegments | THREE.LineLoop>(null);
   const isHovered = hoveredProject === pid;
   const isDimmed = hoveredProject !== null && !isHovered;
 
-  const { geometry, showDot } = useMemo(() => {
+  // Polygon geometry for 3+ packages (capped at 10 sides).
+  const polygonGeometry = useMemo(() => {
+    if (count < 3) return null;
     const size = 0.22;
-    // Smooth circle for 1 or 2 packages; N-gon (capped at 10) for 3+.
-    const segments = count <= 2 ? 32 : Math.min(count, 10);
+    const segments = Math.min(count, 10);
     const pts: THREE.Vector3[] = [];
     for (let i = 0; i < segments; i++) {
       const angle = (i / segments) * Math.PI * 2 - Math.PI / 2;
       pts.push(new THREE.Vector3(size * Math.cos(angle), size * Math.sin(angle), 0));
     }
-    const geo = new THREE.BufferGeometry().setFromPoints(pts);
-    return { geometry: geo, showDot: count === 2 };
+    return new THREE.BufferGeometry().setFromPoints(pts);
+  }, [count]);
+
+  // Dumbbell connector for exactly 2 packages.
+  const dumbbellGeometry = useMemo(() => {
+    if (count !== 2) return null;
+    const offset = 0.12;
+    const pts = [
+      new THREE.Vector3(-offset, 0, 0),
+      new THREE.Vector3(offset, 0, 0),
+    ];
+    return new THREE.BufferGeometry().setFromPoints(pts);
   }, [count]);
 
   useFrame(() => {
@@ -252,21 +262,40 @@ function ClusterShape({
       const mat = lineRef.current.material as THREE.LineBasicMaterial;
       mat.opacity = isDimmed ? 0.12 : isHovered ? 0.95 : 0.55;
     }
-    if (dotMatRef.current) {
-      dotMatRef.current.opacity = isDimmed ? 0.18 : isHovered ? 1.0 : 0.7;
-    }
   });
+
+  const dotOpacity = isDimmed ? 0.25 : isHovered ? 1.0 : 0.8;
+  const dotSize = 0.045;
 
   return (
     <group position={[center.x, center.y + 0.5, center.z]}>
-      <lineLoop ref={lineRef} geometry={geometry}>
-        <lineBasicMaterial color={color} transparent opacity={0.55} />
-      </lineLoop>
-      {showDot && (
+      {count === 1 && (
         <mesh>
-          <sphereGeometry args={[0.03, 12, 12]} />
-          <meshBasicMaterial ref={dotMatRef} color={color} transparent opacity={0.7} />
+          <sphereGeometry args={[dotSize, 14, 14]} />
+          <meshBasicMaterial color={color} transparent opacity={dotOpacity} />
         </mesh>
+      )}
+      {count === 2 && (
+        <>
+          <mesh position={[-0.12, 0, 0]}>
+            <sphereGeometry args={[dotSize, 14, 14]} />
+            <meshBasicMaterial color={color} transparent opacity={dotOpacity} />
+          </mesh>
+          <mesh position={[0.12, 0, 0]}>
+            <sphereGeometry args={[dotSize, 14, 14]} />
+            <meshBasicMaterial color={color} transparent opacity={dotOpacity} />
+          </mesh>
+          {dumbbellGeometry && (
+            <lineSegments ref={lineRef as React.RefObject<THREE.LineSegments>} geometry={dumbbellGeometry}>
+              <lineBasicMaterial color={color} transparent opacity={0.55} />
+            </lineSegments>
+          )}
+        </>
+      )}
+      {count >= 3 && polygonGeometry && (
+        <lineLoop ref={lineRef as React.RefObject<THREE.LineLoop>} geometry={polygonGeometry}>
+          <lineBasicMaterial color={color} transparent opacity={0.55} />
+        </lineLoop>
       )}
     </group>
   );
