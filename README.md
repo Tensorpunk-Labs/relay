@@ -96,10 +96,15 @@ relay/
 ├── supabase/
 │   └── migrations/      # Postgres + pgvector schema
 ├── docs/                # Protocol spec, architecture, roadmap
+├── skills/              # Optional Claude Code skills (opt-in install)
 ├── benchmarks/
 │   └── longmemeval/     # Retrieval quality benchmarks
 └── scripts/             # Tooling (export, backup, backfill)
 ```
+
+### Claude Code skill (optional)
+
+If you use Claude Code, there's an opt-in skill in [`skills/using-relay/`](skills/using-relay/) that teaches the agent how to use the CLI + MCP tools — deposit proactively, pull context at session start, orient against prior sessions. Install it by copying the skill folder into `~/.claude/skills/` (see [`skills/README.md`](skills/README.md) for details). It's not required — the MCP server alone already gives agents full access.
 
 ### Storage adapters
 

@@ -41,8 +41,9 @@ Local embeddings via Xenova/all-MiniLM-L6-v2 (384-dim ONNX) — zero API cost fo
 
 ## How It's Used
 
-- **Self-hosted**: Clone the repo, point at your own Supabase project, install the MCP server in Claude Code or any MCP-compatible agent
-- **Hosted (coming soon)**: $10/mo managed Supabase + MCP, zero ops, multi-agent ready
+- **Self-hosted**: Clone the repo, point at your own Supabase project (or run with local SQLite), install the MCP server in Claude Code or any MCP-compatible agent
+- **Managed (waitlist)**: Zero-ops hosted Context Core, in development — join the waitlist on relaymemory.com
+- **Integration**: For custom integrations with your agent platform, contact@tensorpunk.com
 - **Conversational**: Once the MCP server is configured, users talk to Claude naturally ("relay deposit this", "relay pull from project X", "relay orchestrate and give me a state of the union"). The CLI exists for scripting and power users; day-to-day usage is conversational.
 
 ## Comparison to Other AI Memory Systems
