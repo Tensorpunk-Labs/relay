@@ -7,18 +7,19 @@ import * as THREE from 'three';
 import { usePackages, useProjects } from '@/lib/hooks';
 import GradientRings from './GradientRings';
 
-// Cluster colour palette — derived from the run-048 waveform particle
-// system: cyan body, white-cyan highlights, plus a lime peak accent.
-// We tilt all projects toward cool hues so the network reads as a
-// single flowing system instead of a rainbow.
+// Cluster colour palette — all cool hues so the network reads as a
+// single flowing system instead of a rainbow. No lime slot: the
+// per-project lime stood out as an odd "one yellow project" instead
+// of reading as accent; the waveform pulses already carry the
+// occasional lime spark where it belongs.
 const PROJECT_COLORS: Record<string, string> = {};
 const PALETTE = [
   '#00ddff', // cyan (primary)
   '#7be6ff', // white-cyan
   '#aaf0ff', // pale cyan
   '#3cb4ff', // mid-cyan
-  '#d4f500', // lime peak (one slot — the "yellow-green spark" projects)
   '#5fe0ff', // bright cyan
+  '#6ac7ff', // steel cyan
 ];
 
 function getProjectColor(projectId: string, index: number): string {
@@ -202,6 +203,72 @@ function ClusterEdges({ nodes, indices, time, hoveredProject, projectId, color }
     <lineSegments ref={lineRef} geometry={geometry}>
       <lineBasicMaterial color={color} transparent opacity={0.1} />
     </lineSegments>
+  );
+}
+
+/**
+ * ClusterShape — a small geometric marker that sits above each project
+ * cluster. Reads the project's package count at a glance:
+ *   1 package  → smooth circle
+ *   2 packages → smooth circle with a centre dot
+ *   3+         → N-sided polygon (capped at 10 sides for legibility)
+ *
+ * Without this, clusters with <3 packages had no visible shape because
+ * ClusterEdges needs pairs of nearby nodes to draw any line at all.
+ */
+function ClusterShape({
+  pid,
+  center,
+  color,
+  count,
+  hoveredProject,
+}: {
+  pid: string;
+  center: THREE.Vector3;
+  color: string;
+  count: number;
+  hoveredProject: string | null;
+}) {
+  const lineRef = useRef<THREE.LineLoop>(null);
+  const dotMatRef = useRef<THREE.MeshBasicMaterial>(null);
+  const isHovered = hoveredProject === pid;
+  const isDimmed = hoveredProject !== null && !isHovered;
+
+  const { geometry, showDot } = useMemo(() => {
+    const size = 0.22;
+    // Smooth circle for 1 or 2 packages; N-gon (capped at 10) for 3+.
+    const segments = count <= 2 ? 32 : Math.min(count, 10);
+    const pts: THREE.Vector3[] = [];
+    for (let i = 0; i < segments; i++) {
+      const angle = (i / segments) * Math.PI * 2 - Math.PI / 2;
+      pts.push(new THREE.Vector3(size * Math.cos(angle), size * Math.sin(angle), 0));
+    }
+    const geo = new THREE.BufferGeometry().setFromPoints(pts);
+    return { geometry: geo, showDot: count === 2 };
+  }, [count]);
+
+  useFrame(() => {
+    if (lineRef.current) {
+      const mat = lineRef.current.material as THREE.LineBasicMaterial;
+      mat.opacity = isDimmed ? 0.12 : isHovered ? 0.95 : 0.55;
+    }
+    if (dotMatRef.current) {
+      dotMatRef.current.opacity = isDimmed ? 0.18 : isHovered ? 1.0 : 0.7;
+    }
+  });
+
+  return (
+    <group position={[center.x, center.y + 0.5, center.z]}>
+      <lineLoop ref={lineRef} geometry={geometry}>
+        <lineBasicMaterial color={color} transparent opacity={0.55} />
+      </lineLoop>
+      {showDot && (
+        <mesh>
+          <sphereGeometry args={[0.03, 12, 12]} />
+          <meshBasicMaterial ref={dotMatRef} color={color} transparent opacity={0.7} />
+        </mesh>
+      )}
+    </group>
   );
 }
 
@@ -585,6 +652,16 @@ function BrainMesh({ hoveredProject, setHoveredProject, onClickProject, windowDa
           />
         );
       })}
+      {clusterInfo.map((cluster) => (
+        <ClusterShape
+          key={`shape-${cluster.pid}`}
+          pid={cluster.pid}
+          center={cluster.center}
+          color={cluster.color}
+          count={cluster.count}
+          hoveredProject={hoveredProject}
+        />
+      ))}
       <BridgeEdges nodes={nodes} time={time} hoveredProject={hoveredProject} />
       <BackgroundMist time={time} />
       <GradientRings windowDays={windowDays} />

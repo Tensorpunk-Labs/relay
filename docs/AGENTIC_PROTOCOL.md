@@ -707,7 +707,7 @@ Implementations MUST declare the version they target via the `relay_version` fie
 
 ## 16. Open Questions
 
-These are tracked in the reference implementation's `docs/V02_ROADMAP.md` and will be resolved in future spec versions.
+These are tracked alongside the reference implementation and will be resolved in future spec versions.
 
 1. **Cross-project references.** Should a package be able to cite a package in another project? If so, how are the transitive access-control implications handled? Target: v0.2.
 
