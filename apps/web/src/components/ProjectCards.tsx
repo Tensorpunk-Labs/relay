@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useProjects, usePackages } from '@/lib/hooks';
+import { useState, useEffect, useMemo } from 'react';
+import { useProjects, usePackages, useSessions } from '@/lib/hooks';
 import type { PackageRow } from '@/lib/supabase';
 
 const statusPill: Record<string, string> = {
@@ -30,7 +30,7 @@ function timeAgo(iso: string): string {
   return `${Math.floor(seconds / 86400)}d`;
 }
 
-function PackageDetail({ pkg, onClose }: { pkg: PackageRow; onClose: () => void }) {
+function PackageDetail({ pkg, callsign, onClose }: { pkg: PackageRow; callsign: string | null; onClose: () => void }) {
   const decisions = (pkg.decisions_made as string[]) || [];
   const questions = (pkg.open_questions as string[]) || [];
   const deliverables = (pkg.deliverables as { path: string; type: string }[]) || [];
@@ -68,6 +68,19 @@ function PackageDetail({ pkg, onClose }: { pkg: PackageRow; onClose: () => void 
         <span className="rs-text-mono text-[8px] rs-text-dim uppercase tracking-wider">
           {pkg.created_by_type}/{pkg.created_by_id}
         </span>
+        {callsign && (
+          <span
+            className="rs-pill"
+            title={`Session callsign: ${callsign}`}
+            style={{
+              color: 'var(--rs-accent-cyan)',
+              borderColor: 'rgba(0, 221, 255, 0.30)',
+              background: 'rgba(0, 221, 255, 0.08)',
+            }}
+          >
+            {callsign}
+          </span>
+        )}
         <span className="rs-text-mono text-[8px] rs-text-faint">
           {new Date(pkg.created_at).toLocaleString()}
         </span>
@@ -164,10 +177,12 @@ function PackageDetail({ pkg, onClose }: { pkg: PackageRow; onClose: () => void 
 function ProjectCard({
   project,
   packages,
+  callsignBySession,
   forceExpand,
 }: {
   project: { id: string; name: string; description: string | null; archived_at?: string | null };
   packages: PackageRow[];
+  callsignBySession: Map<string, string>;
   forceExpand?: boolean;
 }) {
   const isArchived = Boolean(project.archived_at);
@@ -233,7 +248,13 @@ function ProjectCard({
             ))}
           </div>
 
-          {selectedPkg && <PackageDetail pkg={selectedPkg} onClose={() => setSelectedPkg(null)} />}
+          {selectedPkg && (
+            <PackageDetail
+              pkg={selectedPkg}
+              callsign={(selectedPkg.session_id && callsignBySession.get(selectedPkg.session_id)) || null}
+              onClose={() => setSelectedPkg(null)}
+            />
+          )}
 
           <div className="space-y-1 max-h-[400px] overflow-y-auto pr-1 rs-scroll">
             {packages.map((pkg) => {
@@ -268,6 +289,15 @@ function ProjectCard({
                   <span className="rs-text-mono text-[10px] truncate flex-1 text-white/80">
                     {pkg.title}
                   </span>
+                  {pkg.session_id && callsignBySession.has(pkg.session_id) && (
+                    <span
+                      className="rs-text-mono text-[9px] shrink-0"
+                      title={`Session: ${callsignBySession.get(pkg.session_id)}`}
+                      style={{ color: 'rgba(0, 221, 255, 0.70)' }}
+                    >
+                      {callsignBySession.get(pkg.session_id)}
+                    </span>
+                  )}
                   {pkg.handoff_note && (
                     <span className="rs-text-cyan rs-text-mono text-[9px]" title="Has handoff note">
                       H
@@ -379,7 +409,19 @@ export default function ProjectCards({
 }: { expandProjectId?: string | null; includeArchived?: boolean } = {}) {
   const { projects, loading: projectsLoading } = useProjects({ includeArchived });
   const { packages, loading: packagesLoading } = usePackages();
+  const { sessions } = useSessions();
   const [triggeredId, setTriggeredId] = useState<string | null>(null);
+
+  // session_id → callsign lookup. useSessions() returns the 20 most recent
+  // by default; any package whose session is in that window surfaces its
+  // callsign here.
+  const callsignBySession = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const s of sessions) {
+      if (s.callsign) m.set(s.id, s.callsign);
+    }
+    return m;
+  }, [sessions]);
 
   useEffect(() => {
     if (expandProjectId) {
@@ -420,6 +462,7 @@ export default function ProjectCards({
           key={project.id}
           project={project}
           packages={packagesByProject.get(project.id) || []}
+          callsignBySession={callsignBySession}
           forceExpand={triggeredId === project.id}
         />
       ))}
