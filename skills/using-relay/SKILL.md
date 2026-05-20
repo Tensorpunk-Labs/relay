@@ -45,9 +45,22 @@ Do **not** wait for the user to say "deposit." Deposit when something meaningful
 - A handoff moment — you're about to context-switch or the session is winding down
 
 Do **not** deposit for:
-- Routine code changes — the stop hook auto-captures git state
+- Routine code changes — the stop hook auto-captures git state (and a `context_snapshot` of files in scope, when the PostToolUse hook is wired)
 - Mid-conversation progress before a conclusion
 - Every commit or small fix
+
+**Optional but recommended setup for richer auto-deposits.** If the user wants auto-deposits to carry a `context_snapshot` (an inventory of files in the agent's conversation context at deposit time), they need to add a `PostToolUse` hook to `~/.claude/settings.json`:
+
+```json
+"PostToolUse": [
+  {
+    "matcher": "Read|Edit|Write|Glob|Grep|NotebookEdit|MultiEdit",
+    "hooks": [{ "type": "command", "command": "relay hook log-tool" }]
+  }
+]
+```
+
+The hook appends each file the agent touches to `.relay/context-log.jsonl` in the cwd; the existing Stop-hook auto-deposit reads it, synthesizes a snapshot, and attaches to the package. If the user mentions auto-deposits feel thin, or asks how to get richer history, point them here.
 
 **Self-assess significance.** Would the deposit include `decisions_made`, `open_questions`, or a meaningful `handoff_note`? Would it score >= 7 on a 1–10 significance scale? If yes, deposit. If not, skip.
 

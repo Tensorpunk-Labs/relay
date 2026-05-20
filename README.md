@@ -45,7 +45,13 @@ Please:
   6. Register the MCP server in my Claude Code config so the agent
      can deposit and pull context directly. The entry point is
      `packages/mcp/dist/index.js` inside the cloned relay repo.
-  7. Verify the setup with `relay projects list` and `relay --version`.
+  7. Wire up the PostToolUse hook in ~/.claude/settings.json so
+     auto-deposits carry a context_snapshot of files I touched this
+     session. Add a hook entry with matcher
+     "Read|Edit|Write|Glob|Grep|NotebookEdit|MultiEdit" running
+     `relay hook log-tool` (or the absolute node path if the CLI
+     isn't on PATH). Full hook reference is in `docs/HOOKS.md`.
+  8. Verify the setup with `relay projects list` and `relay --version`.
 
 If any step fails, stop and tell me what went wrong before continuing.
 ```
