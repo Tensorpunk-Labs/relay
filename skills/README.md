@@ -1,14 +1,21 @@
-# Relay Skills for Claude Code
+# Skills shipped with Relay
 
-Optional Claude Code skills that teach an agent how to use Relay — the context flow protocol this repo implements. Skills are on-demand behavior packs; install a skill and Claude Code invokes it when the situation matches.
+Optional Claude Code skills bundled with this repo. Two kinds:
+
+- **Relay skills** — teach an agent how to use Relay (the context flow protocol).
+- **Tensorpunk Labs (`tpl-*`) workflow skills** — general-purpose multi-project workflow primitives (context introspection, handoff docs). Not Relay-specific, but Relay is the public surface, so they ship here as a starter pack.
+
+Skills are on-demand behavior packs; install a skill and Claude Code invokes it when the situation matches.
 
 ## What's here
 
 | Skill | Triggers | Purpose |
 |-------|----------|---------|
 | `using-relay` | Session start, or when the user mentions relay / context flow / agentic handoffs | Teaches the deposit / pull / orient workflow and the MCP + CLI surface |
+| `tpl-context-report` | User invokes `/tpl-context-report` | Inventories every file currently in the agent's conversation context, prints a grouped markdown table, and launches a self-contained dark-mode HTML visualizer with copy-path and reveal-in-explorer affordances. Read-only |
+| `tpl-handoff` | User invokes `/tpl-handoff` | Exports the current conversation context to a portable handoff `.md` — agent-instruction header, where-we-are summary, suggested-next-actions block keyed off a task-shape classifier. Drop into any session to pick up cold |
 
-More skills (per-command wrappers, workflow automations) may follow. For now a single meta-skill keeps the install footprint minimal.
+More skills may follow. The deposit roadmap will likely absorb some of this functionality directly into deposit payloads (context snapshots as a first-class deposit field), at which point `tpl-context-report` becomes a live-mode preview of what would be deposited.
 
 ## Install
 
