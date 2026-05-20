@@ -39,7 +39,8 @@ Please:
      `relay config set storage sqlite`
      `relay config set actor-id <me>`
      `relay config set actor-type human`
-  5. Install the using-relay skill: copy `skills/using-relay/` into
+  5. Install the bundled skills: copy `skills/using-relay/`,
+     `skills/tpl-context-report/`, and `skills/tpl-handoff/` into
      `~/.claude/skills/`.
   6. Register the MCP server in my Claude Code config so the agent
      can deposit and pull context directly. The entry point is
@@ -136,11 +137,29 @@ relay/
     └── longmemeval/     # Retrieval quality benchmarks
 ```
 
-### Claude Code skill (optional)
+### Claude Code skills (optional)
 
-There's an opt-in skill in [`skills/using-relay/`](skills/using-relay/) that teaches the agent how to use the CLI + MCP tools — deposit proactively, pull context at session start, orient against prior sessions. Install it by copying the skill folder into `~/.claude/skills/` (see [`skills/README.md`](skills/README.md) for details). It's not required — the MCP server alone already gives agents full access.
+Three opt-in skills ship in [`skills/`](skills/):
+
+- [`using-relay/`](skills/using-relay/) — teaches the agent how to use the CLI + MCP tools; deposit proactively, pull context at session start, orient against prior sessions.
+- [`tpl-context-report/`](skills/tpl-context-report/) — inventories every file in the agent's conversation context and renders a self-contained dark-mode HTML visualizer. With `--deposit`, emits the JSON in the exact shape Relay's new `context_snapshot` deposit field expects, so the agent can hand it straight to `relay deposit --context-snapshot <file>` or the `relay_deposit` MCP tool's `context_snapshot` parameter.
+- [`tpl-handoff/`](skills/tpl-handoff/) — exports the current conversation context to a portable handoff `.md` so any fresh agent (or human) can pick up the work without scrollback.
+
+Install by copying the skill folders into `~/.claude/skills/` (see [`skills/README.md`](skills/README.md) for details). None are required — the MCP server alone already gives agents full access.
 
 Prefer always-on guidance over on-demand? Paste the [CLAUDE.md snippet](docs/CLAUDE_MD_SNIPPET.md) into your own global or project `CLAUDE.md` and every Claude Code session will boot oriented through Relay.
+
+### Context Snapshot on every deposit
+
+Deposits can now carry a `context_snapshot` — a structured inventory of the files the depositing agent was looking at when the decision was made (paths, roles, line counts, why). The receiving session sees not just what was decided, but what was on the previous agent's desk. Sensitive path patterns (`.env*`, `credentials*`, `*.key`, `secrets/`, `.ssh/`, `.aws/`, `.gnupg/`) are redacted server-side by `@relay/core`'s `redactSensitivePaths` before persistence.
+
+Attach via CLI:
+
+```bash
+relay deposit --title "..." --context-snapshot ./path/to/snapshot.json
+```
+
+Or via the `relay_deposit` MCP tool's top-level `context_snapshot` parameter. The `tpl-context-report` skill emits the JSON in the correct shape; see [relaymemory.com/context-snapshot](https://relaymemory.com/context-snapshot) for the full design.
 
 ### Dashboard
 
