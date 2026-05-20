@@ -245,7 +245,15 @@ export class RelayClient {
     artifactType: string | null;
   }): Omit<PackageRow, 'created_at'> {
     const m = args.manifest;
-    return {
+    // Forward-compatible insert: only set context_snapshot when present.
+    // Sending the column at all (even as null) fails against a Supabase
+    // project that hasn't applied migration 014 yet, because the schema
+    // cache rejects the unknown column. Omitting the field means routine
+    // deposits keep working pre- and post-migration; snapshot-carrying
+    // deposits only land after the column exists.
+    const row: Omit<PackageRow, 'created_at' | 'context_snapshot'> & {
+      context_snapshot?: PackageRow['context_snapshot'];
+    } = {
       id: m.package_id,
       project_id: m.project_id,
       title: m.title,
@@ -269,8 +277,11 @@ export class RelayClient {
       manifest: m,
       topic: args.topic,
       artifact_type: args.artifactType,
-      context_snapshot: m.context_snapshot ?? null,
     };
+    if (m.context_snapshot) {
+      row.context_snapshot = m.context_snapshot;
+    }
+    return row as Omit<PackageRow, 'created_at'>;
   }
 
   private skippedManifest(id: string, title: string): RelayManifest {
