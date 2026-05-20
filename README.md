@@ -153,13 +153,34 @@ Prefer always-on guidance over on-demand? Paste the [CLAUDE.md snippet](docs/CLA
 
 Deposits can now carry a `context_snapshot` — a structured inventory of the files the depositing agent was looking at when the decision was made (paths, roles, line counts, why). The receiving session sees not just what was decided, but what was on the previous agent's desk. Sensitive path patterns (`.env*`, `credentials*`, `*.key`, `secrets/`, `.ssh/`, `.aws/`, `.gnupg/`) are redacted server-side by `@relay/core`'s `redactSensitivePaths` before persistence.
 
-Attach via CLI:
+**Manual deposits** attach via CLI:
 
 ```bash
 relay deposit --title "..." --context-snapshot ./path/to/snapshot.json
 ```
 
-Or via the `relay_deposit` MCP tool's top-level `context_snapshot` parameter. The `tpl-context-report` skill emits the JSON in the correct shape; see [relaymemory.com/context-snapshot](https://relaymemory.com/context-snapshot) for the full design.
+Or via the `relay_deposit` MCP tool's top-level `context_snapshot` parameter. The `tpl-context-report` skill emits the JSON in the correct shape.
+
+**Auto-deposits (stop-hook)** capture snapshots passively via a Claude Code `PostToolUse` hook. Add this block to your global `~/.claude/settings.json`:
+
+```json
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Read|Edit|Write|Glob|Grep|NotebookEdit|MultiEdit",
+        "hooks": [
+          { "type": "command", "command": "relay hook log-tool" }
+        ]
+      }
+    ]
+  }
+}
+```
+
+The hook appends each file the agent touches to `.relay/context-log.jsonl` in the current working directory. When the existing stop-hook auto-deposit fires, the CLI reads the log, synthesizes a snapshot (de-duped, categorized, ranked), attaches it to the package, and truncates the log so the next session starts clean. The handler is defensive — it never throws and never blocks the tool loop.
+
+See [relaymemory.com/context-snapshot](https://relaymemory.com/context-snapshot) for the full design.
 
 ### Dashboard
 

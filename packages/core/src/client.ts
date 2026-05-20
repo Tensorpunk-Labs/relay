@@ -22,6 +22,7 @@ import { generatePackageId, generateSessionId } from './manifest.js';
 import { generateCallsign } from './callsign.js';
 import { getGitInfo, getGitDiff, getGitFingerprint } from './git-utils.js';
 import { generateContextMd } from './context-md.js';
+import { readContextLog, synthesizeSnapshotFromLog, truncateContextLog } from './context-log.js';
 import { SessionManager } from './session-manager.js';
 import { generateAndStoreEmbeddings, generateQueryEmbedding } from './embeddings.js';
 import { computeSignificance } from './significance.js';
@@ -458,6 +459,19 @@ export class RelayClient {
     const packageId = generatePackageId();
     const parentId = opts.parentId || session?.parent_package_id || null;
 
+    // Fork B: derive a context_snapshot from the per-cwd PostToolUse hook log
+    // if one exists. The hook (`relay hook log-tool`) writes a JSONL of every
+    // file the agent touched during the session. We synthesize the snapshot,
+    // attach it to the manifest, and truncate the log so the next session
+    // starts fresh. Best-effort: failures here never block the deposit.
+    let hookSnapshot;
+    try {
+      const entries = readContextLog();
+      hookSnapshot = synthesizeSnapshotFromLog(entries) ?? undefined;
+    } catch {
+      hookSnapshot = undefined;
+    }
+
     const manifest = buildManifest({
       packageId,
       projectId: resolvedProject,
@@ -475,6 +489,7 @@ export class RelayClient {
         path: f,
         type: path.extname(f).slice(1) || 'file',
       })),
+      contextSnapshot: hookSnapshot,
     });
 
     // Infer metadata from content + changed files
@@ -511,6 +526,14 @@ export class RelayClient {
 
     // Track in session
     sm.trackDeposited(manifest.package_id);
+
+    // Fork B: truncate the context log only if we actually attached a
+    // snapshot. If synthesis returned null (too thin to be useful), leave
+    // the log alone so the next deposit gets another chance once more
+    // entries accumulate.
+    if (hookSnapshot) {
+      try { truncateContextLog(); } catch { /* ignore */ }
+    }
 
     return manifest;
   }

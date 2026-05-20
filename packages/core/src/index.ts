@@ -14,6 +14,13 @@ export { SessionManager, type SessionState } from './session-manager.js';
 export { getGitInfo, getGitDiff, getGitFingerprint, type GitInfo } from './git-utils.js';
 export { generateContextMd } from './context-md.js';
 export { isSensitivePath, redactSensitivePaths, validateContextSnapshot } from './context-snapshot.js';
+export {
+  contextLogPath,
+  readContextLog,
+  truncateContextLog,
+  synthesizeSnapshotFromLog,
+  type ContextLogEntry,
+} from './context-log.js';
 export { generateAndStoreEmbeddings, generateQueryEmbedding } from './embeddings.js';
 export { computeSignificance } from './significance.js';
 export { rerank } from './reranker.js';
