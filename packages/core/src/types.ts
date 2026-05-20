@@ -45,6 +45,57 @@ export interface RelayManifest {
   context_diff_ref: string;
   topic?: string;
   artifact_type?: string;
+  /**
+   * Optional snapshot of what files were in the depositing agent's
+   * conversation context at deposit time. Paths-only (no contents).
+   * Sensitive paths (.env, credentials, *.key, secrets/) are redacted
+   * by `redactSensitivePaths` in core before persistence. Manual
+   * deposits via the MCP tool or `relay deposit --context-snapshot
+   * <file>` carry this; auto-deposits via the stop hook do not (yet
+   * — see B-fork follow-up: pre-stop snapshot capture).
+   */
+  context_snapshot?: ContextSnapshot;
+}
+
+export interface ContextSnapshot {
+  /** Coarse session shape — same numbers as the report header. */
+  session_shape: {
+    files: number;
+    lines: number;
+    dominant_categories: string[];
+  };
+  /** Per-file entries. Generalized (3+ siblings of same dir+ext) before storage. */
+  files: ContextSnapshotFile[];
+  /** Ranking helpers for fast dashboard rendering. */
+  heavyweights: {
+    biggest: ContextSnapshotRanked[];
+    most_touched: ContextSnapshotRanked[];
+    stale: ContextSnapshotRanked[];
+  };
+  /** Total lines per category (for the bar chart). */
+  category_totals: Record<string, number>;
+}
+
+export interface ContextSnapshotFile {
+  /** Absolute path. May be redacted to '[redacted]' if matched a sensitive pattern. */
+  path: string;
+  role: 'read' | 'edit' | 'write' | 'session-load' | 'plan' | 'reference';
+  category: string;
+  /** Approximate line count, or null if unknown / generalized group. */
+  lines: number | null;
+  /** Short phrase explaining why the file is in context. */
+  why: string;
+  /** True when this row represents a generalized group (e.g. "src/components/*.tsx"). */
+  is_group?: boolean;
+  /** When is_group, the count of files collapsed into this row. */
+  group_count?: number;
+}
+
+export interface ContextSnapshotRanked {
+  path: string;
+  /** lines for "biggest"; touch count for "most_touched"; null for "stale". */
+  metric: number | null;
+  note: string;
 }
 
 export interface Deliverable {
@@ -162,6 +213,13 @@ export interface DepositOptions {
   projectId?: string;
   topic?: string;
   artifactType?: string;
+  /**
+   * Optional snapshot of the depositing agent's conversation-context state
+   * at deposit time. Redacted via redactSensitivePaths before persistence.
+   * Manual deposits (CLI --context-snapshot, MCP tool) carry this; stop-
+   * hook auto-deposits do not (pending fork-B pre-stop capture work).
+   */
+  contextSnapshot?: ContextSnapshot;
 }
 
 export interface AutoDepositOptions {

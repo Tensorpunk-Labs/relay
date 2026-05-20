@@ -30,7 +30,31 @@ export interface PackageRow {
   significance: number | null;
   topic: string | null;
   artifact_type: string | null;
+  context_snapshot?: ContextSnapshotRow | null;
   created_at: string;
+}
+
+export interface ContextSnapshotRow {
+  session_shape: {
+    files: number;
+    lines: number;
+    dominant_categories: string[];
+  };
+  files: Array<{
+    path: string;
+    role: string;
+    category: string;
+    lines: number | null;
+    why: string;
+    is_group?: boolean;
+    group_count?: number;
+  }>;
+  heavyweights: {
+    biggest: Array<{ path: string; metric: number | null; note: string }>;
+    most_touched: Array<{ path: string; metric: number | null; note: string }>;
+    stale: Array<{ path: string; metric: number | null; note: string }>;
+  };
+  category_totals: Record<string, number>;
 }
 
 export interface ProjectRow {

@@ -1,5 +1,6 @@
 import { Command } from 'commander';
-import { RelayClient, SessionManager } from '@relay/core';
+import { RelayClient, SessionManager, validateContextSnapshot } from '@relay/core';
+import { readFileSync } from 'node:fs';
 
 export function depositCommand(): Command {
   return new Command('deposit')
@@ -18,6 +19,7 @@ export function depositCommand(): Command {
     .option('--quiet', 'Suppress output (for hooks)')
     .option('--topic <topic>', 'Topic/subject area (auto-inferred if omitted)')
     .option('--type <type>', 'Artifact type: decision, analysis, handoff, question, milestone (auto-inferred if omitted)')
+    .option('--context-snapshot <path>', 'Path to a JSON file containing a ContextSnapshot (see @relay/core types). Sensitive paths are redacted before persistence.')
     .action(async (opts) => {
       try {
         const client = await RelayClient.fromConfig();
@@ -63,6 +65,12 @@ export function depositCommand(): Command {
         const sm = new SessionManager();
         const session = sm.getSession();
 
+        let contextSnapshot;
+        if (opts.contextSnapshot) {
+          const raw = readFileSync(opts.contextSnapshot, 'utf8');
+          contextSnapshot = validateContextSnapshot(JSON.parse(raw));
+        }
+
         const pkg = await client.deposit({
           title: opts.title || 'Untitled deposit',
           description: opts.description || '',
@@ -76,6 +84,7 @@ export function depositCommand(): Command {
           projectId: opts.project,
           topic: opts.topic,
           artifactType: opts.type,
+          contextSnapshot,
         });
 
         if (!opts.quiet) {

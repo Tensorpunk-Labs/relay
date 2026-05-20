@@ -3,7 +3,7 @@ import {
   ListToolsRequestSchema,
   CallToolRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
-import { RelayClient, SessionManager, formatOrientationBundle } from '@relay/core';
+import { RelayClient, SessionManager, formatOrientationBundle, validateContextSnapshot } from '@relay/core';
 import type { PackageStatus, ReviewType } from '@relay/core';
 import { assembleProjectDigest, assembleGlobalDigest } from '@relay/orchestrator';
 
@@ -66,6 +66,44 @@ export async function registerTools(server: Server) {
             auto: { type: 'boolean', description: 'Auto-generate from git state + session info' },
             topic: { type: 'string', description: 'Topic/subject area (e.g., cli, orchestrator, dashboard). Auto-inferred if omitted.' },
             artifact_type: { type: 'string', description: 'Artifact type (decision, analysis, handoff, question, milestone, auto-deposit). Auto-inferred if omitted.' },
+            context_snapshot: {
+              type: 'object',
+              description: 'Optional snapshot of the files in this conversation context at deposit time. When you (the agent) have inventoried what files you have been reading/editing/holding loaded this session, pass that inventory here so the deposit becomes a richer handoff. Sensitive paths (.env, credentials, *.key, secrets/) are redacted server-side before persistence. Shape: ContextSnapshot in @relay/core/types. Omit for routine deposits where the context shape is uninteresting.',
+              properties: {
+                session_shape: {
+                  type: 'object',
+                  properties: {
+                    files: { type: 'number' },
+                    lines: { type: 'number' },
+                    dominant_categories: { type: 'array', items: { type: 'string' } },
+                  },
+                },
+                files: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      path: { type: 'string' },
+                      role: { type: 'string', enum: ['read', 'edit', 'write', 'session-load', 'plan', 'reference'] },
+                      category: { type: 'string' },
+                      lines: { type: ['number', 'null'] },
+                      why: { type: 'string' },
+                      is_group: { type: 'boolean' },
+                      group_count: { type: 'number' },
+                    },
+                  },
+                },
+                heavyweights: {
+                  type: 'object',
+                  properties: {
+                    biggest: { type: 'array' },
+                    most_touched: { type: 'array' },
+                    stale: { type: 'array' },
+                  },
+                },
+                category_totals: { type: 'object' },
+              },
+            },
           },
           required: ['title'],
         },
@@ -279,6 +317,26 @@ export async function registerTools(server: Server) {
             return { content: [{ type: 'text' as const, text: JSON.stringify(pkg, null, 2) }] };
           }
 
+          let contextSnapshot;
+          if (a.context_snapshot) {
+            try {
+              contextSnapshot = validateContextSnapshot(a.context_snapshot);
+            } catch (err) {
+              return {
+                content: [
+                  {
+                    type: 'text' as const,
+                    text: JSON.stringify(
+                      { error: 'invalid_context_snapshot', message: (err as Error).message },
+                      null,
+                      2,
+                    ),
+                  },
+                ],
+              };
+            }
+          }
+
           const pkg = await client.deposit({
             title: (a.title as string) || 'Untitled',
             description: (a.description as string) || '',
@@ -291,6 +349,7 @@ export async function registerTools(server: Server) {
             projectId: (a.project_id as string) || undefined,
             topic: (a.topic as string) || undefined,
             artifactType: (a.artifact_type as string) || undefined,
+            contextSnapshot,
           });
           return { content: [{ type: 'text' as const, text: JSON.stringify(pkg, null, 2) }] };
         }

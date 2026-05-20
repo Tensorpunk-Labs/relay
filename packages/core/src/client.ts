@@ -269,6 +269,7 @@ export class RelayClient {
       manifest: m,
       topic: args.topic,
       artifact_type: args.artifactType,
+      context_snapshot: m.context_snapshot ?? null,
     };
   }
 
@@ -328,6 +329,7 @@ export class RelayClient {
       openQuestions: opts.openQuestions,
       decisionsMade: opts.decisions,
       handoffNote: opts.handoffNote,
+      contextSnapshot: opts.contextSnapshot,
     });
 
     // Infer topic/artifact_type if not provided

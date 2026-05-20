@@ -1,13 +1,18 @@
 ---
 name: tpl-context-report
-description: Use when the user invokes /tpl-context-report. Inventories every file currently in the agent's conversation context (Read/Edit/Write/SessionStart-loaded), prints a grouped markdown table, and launches a self-contained HTML visualizer with copy-path and reveal-in-explorer affordances. Read-only — does not modify project files.
+description: Use when the user invokes /tpl-context-report. Inventories every file currently in the agent's conversation context, prints a grouped markdown table, and launches a self-contained HTML visualizer with copy-path and reveal-in-explorer affordances. Also serves as the live-mode preview of what a Relay deposit's context_snapshot field carries — pass --deposit to emit JSON suitable for `relay deposit --context-snapshot <file>` or the `context_snapshot` parameter on the `relay_deposit` MCP tool. Read-only — does not modify project files.
 ---
 
 # tpl-context-report — Inventory & Visualize Conversation Context
 
 When invoked, produce a structured inventory of every file the agent has touched or had loaded into context this session, then generate a self-contained HTML visualizer and open it in the user's default browser.
 
-This is **session-local introspection**. No memory load. No deposit. No edits.
+This skill plays two roles:
+
+1. **Session-local introspection** — see what's in your agent's head right now (the default mode).
+2. **Live-mode preview of a Relay deposit's `context_snapshot`** — Relay packages now carry an optional `context_snapshot` field that records exactly this inventory at deposit time. This skill produces the same JSON shape Relay expects; pass `--deposit` to write it to a file you can feed into `relay deposit --context-snapshot <file>` or the `relay_deposit` MCP tool's `context_snapshot` parameter.
+
+No memory load. No edits.
 
 ## Invocation patterns
 
@@ -16,6 +21,8 @@ This is **session-local introspection**. No memory load. No deposit. No edits.
 | `/tpl-context-report` | Full inventory + table + launch visualizer |
 | `/tpl-context-report --no-browser` | Inventory + table only; write the HTML but do not open it |
 | `/tpl-context-report --table-only` | Inventory + table only; skip HTML generation entirely |
+| `/tpl-context-report --deposit` | Inventory + table + write a `context-snapshot.json` to the OS temp dir, ready to feed into `relay deposit --context-snapshot <file>`. Also writes the HTML viewer unless combined with `--table-only`. Tell the user the exact path and the exact CLI invocation to deposit it |
+| `/tpl-context-report --deposit --inline` | Same as `--deposit`, but also print the JSON inline so the user can paste it directly into the `relay_deposit` MCP tool's `context_snapshot` field |
 
 ## Phase 1 — Enumerate context
 
@@ -94,6 +101,56 @@ Output structure (keep it tight; this is a scan, not a transcript):
 Opened in default browser: `<path to generated HTML>`
 (Or, if `--no-browser`: "Written to <path>; open manually with `start <path>`")
 ```
+
+## Phase 4.5 — Emit deposit JSON (only with `--deposit`)
+
+Skip this phase unless `--deposit` was passed.
+
+Write the inventory in `ContextSnapshot` shape (see `@relay/core/types`) to:
+
+```
+C:\Users\TensorPunk\AppData\Local\Temp\tpl-reports\context-snapshot-<YYYYMMDD-HHMMSS>.json
+```
+
+(Bash path: `/c/Users/TensorPunk/AppData/Local/Temp/tpl-reports/...`)
+
+Shape:
+
+```json
+{
+  "session_shape": { "files": 8, "lines": 1101, "dominant_categories": ["instructions", "major-doc"] },
+  "files": [
+    { "path": "...", "role": "read", "category": "major-doc", "lines": 181, "why": "..." }
+  ],
+  "heavyweights": {
+    "biggest":      [{ "path": "...", "metric": 270, "note": "..." }],
+    "most_touched": [{ "path": "...", "metric": 2,   "note": "..." }],
+    "stale":        [{ "path": "...", "metric": null, "note": "..." }]
+  },
+  "category_totals": { "instructions": 420, "major-doc": 651, "config": 30 }
+}
+```
+
+After writing, tell the user the exact path AND the exact commands to deposit it. Examples:
+
+```bash
+# CLI deposit attaching the snapshot
+relay deposit \
+  --title "[SIG] your title here" \
+  --description "..." \
+  --context-snapshot "C:\\Users\\TensorPunk\\AppData\\Local\\Temp\\tpl-reports\\context-snapshot-<ts>.json"
+```
+
+```
+# Or via the relay_deposit MCP tool: paste the JSON as the
+# `context_snapshot` parameter (top-level argument, not nested
+# inside `description`). The MCP tool will validate the shape
+# and reject with a clear error if it's malformed.
+```
+
+If `--inline` was also passed, print the JSON inline in the chat (fenced) so the user can copy-paste directly.
+
+**Sensitive paths are redacted server-side** by `redactSensitivePaths` in `@relay/core` before persistence — patterns: `.env*`, `credentials*`, `*.key`, `secrets/`, `.ssh/`, `.aws/`. Don't pre-redact in the skill; let core handle it canonically so the rule is single-sourced.
 
 ## Phase 5 — Generate the HTML visualizer
 

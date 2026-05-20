@@ -189,6 +189,29 @@ export default function Timeline() {
                       </span>
                     </div>
                   )}
+                  {pkg.context_snapshot && (
+                    <div
+                      className="mt-1.5 rs-text-mono text-[10px] rounded px-2 py-1"
+                      style={{
+                        background: 'rgba(127, 255, 212, 0.06)',
+                        border: '1px solid rgba(127, 255, 212, 0.18)',
+                        color: 'rgba(127, 255, 212, 0.80)',
+                      }}
+                      title={
+                        pkg.context_snapshot.heavyweights?.biggest?.[0]
+                          ? `biggest: ${pkg.context_snapshot.heavyweights.biggest[0].path}`
+                          : 'context snapshot attached'
+                      }
+                    >
+                      ⌗ {pkg.context_snapshot.session_shape?.files ?? 0} files in context
+                      {pkg.context_snapshot.session_shape?.lines
+                        ? ` · ~${pkg.context_snapshot.session_shape.lines.toLocaleString()} lines`
+                        : ''}
+                      {pkg.context_snapshot.session_shape?.dominant_categories?.length
+                        ? ` · ${pkg.context_snapshot.session_shape.dominant_categories.slice(0, 2).join(', ')}`
+                        : ''}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

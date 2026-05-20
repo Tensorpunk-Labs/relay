@@ -1,5 +1,6 @@
-import type { RelayManifest, Deliverable } from './types.js';
+import type { RelayManifest, Deliverable, ContextSnapshot } from './types.js';
 import { generateContextMd } from './context-md.js';
+import { redactSensitivePaths } from './context-snapshot.js';
 import { generateCdiff } from './cdiff.js';
 import archiver from 'archiver';
 import * as fs from 'node:fs';
@@ -24,6 +25,7 @@ export function buildManifest(opts: {
   decisionsMade?: string[];
   handoffNote?: string;
   estimatedNextActor?: 'agent' | 'human' | null;
+  contextSnapshot?: ContextSnapshot;
 }): RelayManifest {
   return {
     relay_version: '0.1',
@@ -46,6 +48,7 @@ export function buildManifest(opts: {
     handoff_note: opts.handoffNote ?? '',
     estimated_next_actor: opts.estimatedNextActor ?? null,
     context_diff_ref: '.cdiff',
+    context_snapshot: opts.contextSnapshot ? redactSensitivePaths(opts.contextSnapshot) : undefined,
   };
 }
 

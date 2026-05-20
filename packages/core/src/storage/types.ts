@@ -71,6 +71,7 @@ export interface PackageRow {
   manifest: RelayManifest;
   topic: string | null;
   artifact_type: string | null;
+  context_snapshot: import('../types.js').ContextSnapshot | null;
   created_at: string;
 }
 
