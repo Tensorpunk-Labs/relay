@@ -44,6 +44,16 @@ interface SearchBody {
   projectId?: unknown;
   daysWindow?: unknown;
   limit?: unknown;
+  /**
+   * Search mode:
+   *   - "semantic" (default): embedding + reranker pipeline. Best for fuzzy
+   *     conceptual queries ("how did we handle auth tokens?").
+   *   - "keyword": pure substring match across title, description, handoff,
+   *     and context_md via PostgREST ilike. Best for exact identifiers,
+   *     file paths, IDs, and specific phrasings. No model load — fast cold-
+   *     start.
+   */
+  mode?: unknown;
 }
 
 interface RankedHit extends SearchResult {
@@ -78,6 +88,14 @@ export async function POST(request: Request) {
     typeof body.daysWindow === 'number' && body.daysWindow > 0 && body.daysWindow <= 3650
       ? body.daysWindow
       : null;
+  const mode: 'semantic' | 'keyword' = body.mode === 'keyword' ? 'keyword' : 'semantic';
+
+  // Keyword mode branch — no embedding model load, no reranker. Direct
+  // ilike search across title, description, handoff_note, context_md.
+  // Faster cold-start; better for exact identifiers / file paths.
+  if (mode === 'keyword') {
+    return keywordSearch({ query, projectId, daysWindow, limit, start });
+  }
 
   let queryEmbedding: number[];
   try {
@@ -248,4 +266,166 @@ export async function POST(request: Request) {
   }
 
   return Response.json({ hits, query, elapsed_ms: Date.now() - start });
+}
+
+// ---------------------------------------------------------------------------
+// Keyword mode — pure substring search, no model load
+// ---------------------------------------------------------------------------
+
+/**
+ * Keyword search: PostgREST ilike across title, description, handoff_note,
+ * and context_md. No embedding, no reranker — best for exact identifiers,
+ * file paths, package IDs, and specific phrasings. Cold-start is instant.
+ *
+ * Ranking is a synthetic per-column weight (title=4, description=3,
+ * handoff=2, context_md=1) summed across matches, then by created_at DESC
+ * for ties.
+ */
+async function keywordSearch(args: {
+  query: string;
+  projectId: string | null;
+  daysWindow: number | null;
+  limit: number;
+  start: number;
+}): Promise<Response> {
+  const { query, projectId, daysWindow, limit, start } = args;
+
+  // PostgREST treats commas in `.or(...)` as clause separators. Escape any
+  // commas in the user query by replacing with a wildcard so substring
+  // match still works without breaking the URL.
+  const safe = query.replace(/[,()]/g, '_');
+  const pattern = `%${safe}%`;
+
+  // Build the base query — service-role key bypasses RLS.
+  let qb = supabase
+    .from('context_packages')
+    .select(
+      'id, project_id, title, description, handoff_note, context_md, created_at, topic, artifact_type, significance, session_id',
+    );
+  if (projectId) qb = qb.eq('project_id', projectId);
+  if (daysWindow) {
+    const cutoff = new Date(Date.now() - daysWindow * 86_400_000).toISOString();
+    qb = qb.gte('created_at', cutoff);
+  }
+  // Match on any of the four text columns.
+  qb = qb.or(
+    `title.ilike.${pattern},description.ilike.${pattern},handoff_note.ilike.${pattern},context_md.ilike.${pattern}`,
+  );
+  qb = qb.order('created_at', { ascending: false }).limit(limit * 3);
+
+  type Row = {
+    id: string;
+    project_id: string;
+    title: string;
+    description: string | null;
+    handoff_note: string | null;
+    context_md: string | null;
+    created_at: string;
+    topic: string | null;
+    artifact_type: string | null;
+    significance: number | null;
+    session_id: string | null;
+  };
+
+  const { data, error } = (await qb) as { data: Row[] | null; error: { message: string } | null };
+  if (error) {
+    return Response.json(
+      { error: 'keyword_search_failed', message: error.message },
+      { status: 500 },
+    );
+  }
+  const rows: Row[] = data ?? [];
+  if (rows.length === 0) {
+    return Response.json({ hits: [], query, elapsed_ms: Date.now() - start, mode: 'keyword' });
+  }
+
+  // Score by column weights + recency tiebreak.
+  const qLower = query.toLowerCase();
+  type ScoredRow = Row & { score: number; snippet: string };
+  const scored: ScoredRow[] = rows.map((r) => {
+    let score = 0;
+    const titleHit = r.title?.toLowerCase().includes(qLower) ? 4 : 0;
+    const descHit = r.description?.toLowerCase().includes(qLower) ? 3 : 0;
+    const handoffHit = r.handoff_note?.toLowerCase().includes(qLower) ? 2 : 0;
+    const ctxHit = r.context_md?.toLowerCase().includes(qLower) ? 1 : 0;
+    score = titleHit + descHit + handoffHit + ctxHit;
+
+    // Build a snippet from the highest-priority matched column.
+    let snippet = '';
+    if (titleHit) snippet = r.title;
+    else if (descHit && r.description) snippet = excerptAroundMatch(r.description, qLower);
+    else if (handoffHit && r.handoff_note) snippet = excerptAroundMatch(r.handoff_note, qLower);
+    else if (ctxHit && r.context_md) snippet = excerptAroundMatch(r.context_md, qLower);
+    else snippet = r.description ?? r.title;
+
+    return { ...r, score, snippet };
+  });
+
+  scored.sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+  });
+
+  const top = scored.slice(0, limit);
+
+  // Hydrate project names + callsigns
+  const projectIds = [...new Set(top.map((r) => r.project_id))];
+  const projectNameById = new Map<string, string>();
+  if (projectIds.length > 0) {
+    const { data: pdata } = await supabase
+      .from('projects')
+      .select('id, name')
+      .in('id', projectIds);
+    for (const p of (pdata ?? []) as { id: string; name: string }[]) {
+      projectNameById.set(p.id, p.name);
+    }
+  }
+  const sessionIds = [...new Set(top.map((r) => r.session_id).filter(Boolean))] as string[];
+  const callsignBySession = new Map<string, string>();
+  if (sessionIds.length > 0) {
+    const { data: sdata } = await supabase
+      .from('sessions')
+      .select('id, callsign')
+      .in('id', sessionIds);
+    for (const s of (sdata ?? []) as { id: string; callsign: string | null }[]) {
+      if (s.callsign) callsignBySession.set(s.id, s.callsign);
+    }
+  }
+
+  // Normalize score to a 0..1 similarity for visual parity with semantic mode.
+  const maxScore = Math.max(...top.map((r) => r.score), 1);
+
+  const hits = top.map((r) => ({
+    package_id: r.id,
+    project_id: r.project_id,
+    project_name: projectNameById.get(r.project_id) ?? '(unknown project)',
+    title: r.title,
+    description: r.description,
+    handoff_note: r.handoff_note,
+    content: r.snippet,
+    similarity: r.score / maxScore,
+    created_at: r.created_at,
+    topic: r.topic,
+    artifact_type: r.artifact_type,
+    significance: r.significance,
+    callsign: r.session_id ? callsignBySession.get(r.session_id) ?? null : null,
+    content_type: 'context_md' as const,
+  }));
+
+  return Response.json({ hits, query, elapsed_ms: Date.now() - start, mode: 'keyword' });
+}
+
+/**
+ * Extract a ~200-char window around the first occurrence of `qLower` in
+ * `text`. Used to show the user where the match landed in context_md.
+ */
+function excerptAroundMatch(text: string, qLower: string): string {
+  if (!text) return '';
+  const idx = text.toLowerCase().indexOf(qLower);
+  if (idx < 0) return text.slice(0, 220);
+  const start = Math.max(0, idx - 80);
+  const end = Math.min(text.length, idx + qLower.length + 140);
+  const prefix = start > 0 ? '…' : '';
+  const suffix = end < text.length ? '…' : '';
+  return prefix + text.slice(start, end).replace(/\s+/g, ' ').trim() + suffix;
 }
