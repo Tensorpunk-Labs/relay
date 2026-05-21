@@ -59,6 +59,45 @@ export function generateContextMd(manifest: RelayManifest, gitDiff?: string): st
     lines.push('');
   }
 
+  // Context snapshot — heavyweights and dominant categories only, NOT the
+  // full files[] list. Goal: make file-path queries hit packages that had
+  // those files in scope, without blowing past the 256-token embedding
+  // window on long sessions. The long tail of context files stays in the
+  // jsonb column (dashboard renders it) but isn't included here.
+  if (manifest.context_snapshot) {
+    const snap = manifest.context_snapshot;
+    const shapeBits: string[] = [];
+    if (snap.session_shape?.files) shapeBits.push(`${snap.session_shape.files} files`);
+    if (snap.session_shape?.lines) shapeBits.push(`~${snap.session_shape.lines.toLocaleString()} lines`);
+    if (snap.session_shape?.dominant_categories?.length) {
+      shapeBits.push(snap.session_shape.dominant_categories.slice(0, 3).join(', '));
+    }
+    if (shapeBits.length > 0) {
+      lines.push('## Context at Deposit');
+      lines.push('');
+      lines.push(shapeBits.join(' · '));
+      lines.push('');
+      const biggest = snap.heavyweights?.biggest?.slice(0, 3) ?? [];
+      const touched = snap.heavyweights?.most_touched?.slice(0, 3) ?? [];
+      if (biggest.length > 0) {
+        lines.push('**Biggest in scope:**');
+        for (const h of biggest) {
+          const tail = h.metric != null ? ` (${h.metric} lines)` : '';
+          lines.push(`- \`${h.path}\`${tail}`);
+        }
+        lines.push('');
+      }
+      if (touched.length > 0) {
+        lines.push('**Most touched:**');
+        for (const h of touched) {
+          const tail = h.metric != null ? ` (×${h.metric})` : '';
+          lines.push(`- \`${h.path}\`${tail}`);
+        }
+        lines.push('');
+      }
+    }
+  }
+
   if (gitDiff) {
     lines.push('## Changes');
     lines.push('');
