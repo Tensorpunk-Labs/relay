@@ -188,6 +188,29 @@ The hook appends each file the agent touches to `.relay/context-log.jsonl` in th
 
 See [relaymemory.com/context-snapshot](https://relaymemory.com/context-snapshot) for the full design.
 
+### Search the deposit history
+
+The dashboard ships a search panel with two modes:
+
+- **Semantic** — embedding + hybrid BM25/pgvector retrieval + cross-encoder reranking. Fuzzy queries like "how did we handle auth tokens" surface relevant deposits even without exact phrasing. Optional **Synthesize** button asks Claude to extract the through-line across top hits (Haiku / Sonnet / Sonnet-deep depth presets).
+- **Keyword** — PostgREST `ilike` substring search across title, description, handoff_note, context_md. Sub-second cold start. Best for file paths, package IDs, exact identifiers.
+
+Filter by day-window (1d / 7d / 30d / 90d / all) and per-project. Click any result to expand and see the full package detail.
+
+Self-hosted instances run all features live by default. The public dashboard at `relaymemory.com/dashboard` gates semantic search and synthesize behind a "Show demo" affordance backed by pre-recorded real output (so random visitors don't drive up embedding / Anthropic costs); keyword stays fully live. Toggle via `NEXT_PUBLIC_DEMO_MODE=true` in `apps/web/.env.local` — default false.
+
+Pre-deployment env for the dashboard (`apps/web/.env.local`, gitignored):
+
+```
+NEXT_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_...
+SUPABASE_SECRET_KEY=sb_secret_...           # server-side, bypasses RLS
+ANTHROPIC_API_KEY=sk-ant-api03-...           # server-side, for synthesize
+NEXT_PUBLIC_DEMO_MODE=false                  # set true to gate semantic + synthesize
+```
+
+See [`apps/web/.env.example`](apps/web/.env.example) for the canonical template.
+
 ### Dashboard
 
 `apps/web` is a Next.js dashboard for browsing context packages, project health, and session timelines. Run it locally with `pnpm --filter @relay/web dev`. It reads from the same storage backend your CLI and MCP server use.
