@@ -146,6 +146,114 @@ function PackageDetail({ pkg, callsign, onClose }: { pkg: PackageRow; callsign: 
         </div>
       )}
 
+      {pkg.context_snapshot && (
+        <div className="mb-3">
+          <div className="rs-zone-label" style={{ fontSize: 8, marginBottom: 4, color: '#7fffd4' }}>
+            CONTEXT AT DEPOSIT
+          </div>
+          <div
+            className="rounded px-3 py-2"
+            style={{
+              background: 'rgba(127, 255, 212, 0.05)',
+              border: '1px solid rgba(127, 255, 212, 0.20)',
+            }}
+          >
+            <div className="rs-text-mono text-[10px]" style={{ color: 'rgba(127, 255, 212, 0.85)', marginBottom: 6 }}>
+              ⌗ {pkg.context_snapshot.session_shape?.files ?? 0} files in context
+              {pkg.context_snapshot.session_shape?.lines
+                ? ` · ~${pkg.context_snapshot.session_shape.lines.toLocaleString()} lines`
+                : ''}
+              {pkg.context_snapshot.session_shape?.dominant_categories?.length
+                ? ` · ${pkg.context_snapshot.session_shape.dominant_categories.slice(0, 3).join(', ')}`
+                : ''}
+            </div>
+            {pkg.context_snapshot.heavyweights?.biggest && pkg.context_snapshot.heavyweights.biggest.length > 0 && (
+              <div className="mb-2">
+                <div className="rs-zone-label" style={{ fontSize: 7, marginBottom: 2, color: 'rgba(255, 179, 71, 0.85)' }}>
+                  BIGGEST
+                </div>
+                <ul className="space-y-0.5">
+                  {pkg.context_snapshot.heavyweights.biggest.slice(0, 3).map((h, i) => (
+                    <li key={i} className="rs-text-mono text-[10px] text-white/55 flex gap-1.5">
+                      <span className="shrink-0" style={{ color: 'rgba(255, 179, 71, 0.7)' }}>
+                        {h.metric ? `${h.metric}L` : '·'}
+                      </span>
+                      <span className="truncate" title={h.path}>{h.path}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {pkg.context_snapshot.heavyweights?.most_touched && pkg.context_snapshot.heavyweights.most_touched.length > 0 && (
+              <div className="mb-2">
+                <div className="rs-zone-label" style={{ fontSize: 7, marginBottom: 2, color: 'rgba(127, 255, 212, 0.7)' }}>
+                  MOST TOUCHED
+                </div>
+                <ul className="space-y-0.5">
+                  {pkg.context_snapshot.heavyweights.most_touched.slice(0, 3).map((h, i) => (
+                    <li key={i} className="rs-text-mono text-[10px] text-white/55 flex gap-1.5">
+                      <span className="shrink-0" style={{ color: 'rgba(127, 255, 212, 0.6)' }}>
+                        {h.metric ? `×${h.metric}` : '·'}
+                      </span>
+                      <span className="truncate" title={h.path}>{h.path}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {pkg.context_snapshot.category_totals && Object.keys(pkg.context_snapshot.category_totals).length > 0 && (
+              <div>
+                <div className="rs-zone-label" style={{ fontSize: 7, marginBottom: 4, color: 'rgba(127, 255, 212, 0.7)' }}>
+                  BY CATEGORY
+                </div>
+                {(() => {
+                  const totals = pkg.context_snapshot!.category_totals;
+                  const max = Math.max(...Object.values(totals));
+                  return (
+                    <div className="space-y-1">
+                      {Object.entries(totals)
+                        .sort((a, b) => b[1] - a[1])
+                        .map(([cat, lines]) => (
+                          <div key={cat} className="flex items-center gap-2">
+                            <span
+                              className="rs-text-mono text-[9px] rs-text-dim shrink-0"
+                              style={{ width: 92, textTransform: 'uppercase', letterSpacing: 0.5 }}
+                            >
+                              {cat}
+                            </span>
+                            <div
+                              className="grow rounded-sm"
+                              style={{
+                                height: 6,
+                                background: 'rgba(127, 255, 212, 0.08)',
+                                border: '1px solid rgba(127, 255, 212, 0.15)',
+                              }}
+                            >
+                              <div
+                                style={{
+                                  width: `${Math.round((lines / max) * 100)}%`,
+                                  height: '100%',
+                                  background: 'rgba(127, 255, 212, 0.55)',
+                                }}
+                              />
+                            </div>
+                            <span
+                              className="rs-text-mono text-[9px] shrink-0"
+                              style={{ width: 48, textAlign: 'right', color: 'rgba(255, 179, 71, 0.75)' }}
+                            >
+                              {lines.toLocaleString()}
+                            </span>
+                          </div>
+                        ))}
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {deliverables.length > 0 && (
         <div className="mb-3">
           <div className="rs-zone-label" style={{ fontSize: 8, marginBottom: 4 }}>
@@ -319,6 +427,15 @@ function ProjectCard({
                       title="Has open questions"
                     >
                       Q
+                    </span>
+                  )}
+                  {pkg.context_snapshot && (
+                    <span
+                      className="rs-text-mono text-[9px]"
+                      style={{ color: '#7fffd4' }}
+                      title={`Has context snapshot: ${pkg.context_snapshot.session_shape?.files ?? 0} files, ~${pkg.context_snapshot.session_shape?.lines?.toLocaleString() ?? '?'} lines`}
+                    >
+                      C
                     </span>
                   )}
                   <span className="rs-text-mono text-[9px] rs-text-faint tabular-nums">
