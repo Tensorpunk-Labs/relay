@@ -307,6 +307,12 @@ export interface RelayStorage extends ReadOnlyRelayStorage {
 
   // Embeddings
   insertEmbeddings(rows: EmbeddingRow[]): Promise<void>;
+  /**
+   * Delete all embedding rows for a package. Optional on the interface
+   * because not every adapter needs to support backfill operations.
+   * `relay reembed` calls it before re-inserting fresh vectors.
+   */
+  deleteEmbeddings?(packageId: string): Promise<void>;
 
   /**
    * Canonical storage key for a package blob. The adapter owns its key

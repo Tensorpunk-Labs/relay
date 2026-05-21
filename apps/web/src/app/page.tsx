@@ -7,6 +7,7 @@ import StatsBar from '@/components/StatsBar';
 import ProjectCards from '@/components/ProjectCards';
 import Timeline from '@/components/Timeline';
 import MetaControls from '@/components/MetaControls';
+import SearchPanel from '@/components/SearchPanel';
 
 const CoreShader = dynamic(() => import('@/components/CoreShader'), { ssr: false });
 const BrainCore = dynamic(() => import('@/components/BrainCore'), { ssr: false });
@@ -78,6 +79,16 @@ export default function Home() {
           </span>
           <div className="rs-label-separator" />
           <StatsBar />
+        </section>
+
+        {/* Semantic search */}
+        <section>
+          <span className="rs-zone-label">
+            <span className="rs-zone-icon">⌕</span>
+            SEMANTIC SEARCH
+          </span>
+          <div className="rs-label-separator" />
+          <SearchPanel />
         </section>
 
         {/* Projects */}

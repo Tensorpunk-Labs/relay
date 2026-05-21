@@ -403,6 +403,18 @@ export class SupabaseStorage implements RelayStorage {
     if (error) throw new Error(`Embedding storage failed: ${error.message}`);
   }
 
+  /**
+   * Delete all embedding rows for a package. Used by `relay reembed` so a
+   * re-embed run starts from a clean slate before inserting the new vectors.
+   */
+  async deleteEmbeddings(packageId: string): Promise<void> {
+    const { error } = await this.supabase
+      .from('package_embeddings')
+      .delete()
+      .eq('package_id', packageId);
+    if (error) throw new Error(`Embedding delete failed: ${error.message}`);
+  }
+
   // -------------------------------------------------------------------------
   // Blobs
   // -------------------------------------------------------------------------

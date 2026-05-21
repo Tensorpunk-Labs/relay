@@ -18,6 +18,7 @@ import { backupCommand } from './commands/backup.js';
 import { restoreCommand } from './commands/restore.js';
 import { syncCommand } from './commands/sync.js';
 import { hookCommand } from './commands/hook.js';
+import { reembedCommand } from './commands/reembed.js';
 
 // Wire the SqliteStorage factory into @relay/core's openStorage() so
 // `relay restore --to sqlite:///...` and future `relay sync` targets
@@ -49,5 +50,6 @@ program.addCommand(backupCommand());
 program.addCommand(restoreCommand());
 program.addCommand(syncCommand());
 program.addCommand(hookCommand());
+program.addCommand(reembedCommand());
 
 program.parse();
