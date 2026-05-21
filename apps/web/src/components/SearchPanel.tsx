@@ -51,6 +51,11 @@ const DAY_STOPS: Array<{ value: number | null; label: string }> = [
   { value: null, label: 'ALL' },
 ];
 
+// Match the Next.js basePath in apps/web/next.config.ts. Fetch URLs are
+// resolved against the origin, NOT the current page, so /api/search would
+// 404 — the actual route is served at /dashboard/api/search.
+const API_BASE = '/dashboard';
+
 export default function SearchPanel() {
   const [query, setQuery] = useState('');
   const [projectId, setProjectId] = useState<string | null>(null);
@@ -91,7 +96,7 @@ export default function SearchPanel() {
     setSummary(null);
     setSummaryError(null);
     try {
-      const resp = await fetch('/api/search', {
+      const resp = await fetch(`${API_BASE}/api/search`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ query: q, projectId, daysWindow, limit: 15 }),
@@ -117,7 +122,7 @@ export default function SearchPanel() {
     setSynthesizing(true);
     setSummaryError(null);
     try {
-      const resp = await fetch('/api/synthesize', {
+      const resp = await fetch(`${API_BASE}/api/synthesize`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({

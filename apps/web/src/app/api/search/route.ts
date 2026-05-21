@@ -121,13 +121,16 @@ export async function POST(request: Request) {
     return Response.json({ hits: [], query, elapsed_ms: Date.now() - start });
   }
 
-  // Per-project hybrid_search. Over-retrieve 3x per project to give the
-  // global reranker headroom. Errors are tolerated per-project so one
-  // bad RPC doesn't blank the whole result set.
+  // Per-project search. Try hybrid_search first (BM25 + semantic via RRF);
+  // fall back to search_context (semantic-only) if the hybrid RPC is
+  // missing in the target Supabase project. Mirrors RelayClient.search().
+  // Over-retrieve 3x per project for global reranker headroom; errors are
+  // tolerated per-project so one bad RPC doesn't blank the whole set.
   const perProjectLimit = Math.max(3, Math.ceil((limit * 3) / Math.max(1, targetProjects.length)));
   const perProjectResults = await Promise.all(
     targetProjects.map(async (p) => {
-      const { data, error } = await supabase.rpc('hybrid_search', {
+      // Try hybrid first
+      const hybrid = await supabase.rpc('hybrid_search', {
         query_text: query,
         query_embedding: JSON.stringify(queryEmbedding),
         project_filter: p.id,
@@ -135,12 +138,26 @@ export async function POST(request: Request) {
         topic_filter: null,
         type_filter: null,
       });
-      if (error) {
-        // Logged server-side, swallowed for the client.
-        console.error(`[/api/search] hybrid_search failed for ${p.id}: ${error.message}`);
+      if (!hybrid.error) {
+        return (hybrid.data as SearchResult[]) ?? [];
+      }
+      const msg = hybrid.error.message ?? '';
+      const missingHybrid = /hybrid_search/.test(msg) || /PGRST202/.test(hybrid.error.code ?? '');
+      if (!missingHybrid) {
+        console.error(`[/api/search] hybrid_search failed for ${p.id}: ${msg}`);
         return [] as SearchResult[];
       }
-      return (data as SearchResult[]) ?? [];
+      // Fall back to semantic-only
+      const sem = await supabase.rpc('search_context', {
+        query_embedding: JSON.stringify(queryEmbedding),
+        project_filter: p.id,
+        match_count: perProjectLimit,
+      });
+      if (sem.error) {
+        console.error(`[/api/search] search_context failed for ${p.id}: ${sem.error.message}`);
+        return [] as SearchResult[];
+      }
+      return (sem.data as SearchResult[]) ?? [];
     }),
   );
 
