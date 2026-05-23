@@ -19,9 +19,6 @@ importers:
       '@react-three/fiber':
         specifier: ^9.5.0
         version: 9.5.0(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(three@0.183.2)
-      '@relay/core':
-        specifier: workspace:*
-        version: link:../../packages/core
       '@supabase/supabase-js':
         specifier: ^2.101.1
         version: 2.101.1

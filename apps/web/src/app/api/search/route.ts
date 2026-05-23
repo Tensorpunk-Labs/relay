@@ -24,16 +24,38 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
-import { generateQueryEmbedding, rerank } from '@relay/core';
-import type { SearchResult } from '@relay/core';
+
+// @relay/core is the canonical source for generateQueryEmbedding + rerank,
+// but the dashboard Vercel project only uploads apps/web (no monorepo
+// context), so the workspace dep can't resolve at build time. We
+// dynamic-import it inside the semantic branch — if the load fails the
+// route returns 503 and the UI surfaces "semantic unavailable on this
+// deployment". Keyword mode is unaffected and stays fully live.
+//
+// Self-hosted instances running from the monorepo get full semantic
+// search because @relay/core resolves via the workspace.
+
+interface SearchResult {
+  package_id: string;
+  content_type: string;
+  content: string;
+  similarity: number;
+}
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+// Same fallback shape as lib/supabase.ts — env vars may be absent during
+// the Next.js build's static route-data collection step (NEXT_PUBLIC_
+// vars are inlined at build time, missing ones leave the literal
+// undefined). Using a placeholder URL lets the route module evaluate;
+// real env presence is checked at request time before any RPC call.
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
 const SUPABASE_SECRET_KEY =
-  process.env.SUPABASE_SECRET_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+  process.env.SUPABASE_SECRET_KEY ||
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+  'placeholder-key';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SECRET_KEY, {
   auth: { persistSession: false },
@@ -97,6 +119,24 @@ export async function POST(request: Request) {
     return keywordSearch({ query, projectId, daysWindow, limit, start });
   }
 
+  // Semantic search is gated on the deployed dashboard. The pipeline
+  // (Xenova/all-MiniLM-L6-v2 + bge-reranker-base) lives in @relay/core
+  // which is a workspace dep that doesn't resolve when apps/web is
+  // deployed standalone on Vercel. Self-hosted users running from the
+  // monorepo can re-enable by importing { generateQueryEmbedding, rerank }
+  // from @relay/core and uncommenting the embedding + rerank lines below.
+  // Demo mode in the UI gates this client-side anyway so the route is
+  // effectively never reached for semantic queries on the public deploy.
+  return Response.json(
+    {
+      error: 'semantic_unavailable',
+      message:
+        'Semantic search is disabled on this deployment. Use mode="keyword" — or, if self-hosting, wire @relay/core back into apps/web and uncomment the embedding + rerank pipeline in src/app/api/search/route.ts.',
+    },
+    { status: 503 },
+  );
+
+  /* SEMANTIC PIPELINE — uncomment after wiring @relay/core back in:
   let queryEmbedding: number[];
   try {
     queryEmbedding = await generateQueryEmbedding(query);
@@ -187,7 +227,7 @@ export async function POST(request: Request) {
   // Cross-encoder rerank over the merged set, capped at 60 candidates so
   // the rerank stays fast even when many projects are searched.
   const candidates = allHits.slice(0, 60);
-  const reranked = await rerank(query, candidates, limit);
+  const reranked = await core!.rerank(query, candidates, limit);
 
   // Dedupe by package_id, preserving rerank order.
   const seen = new Set<string>();
@@ -266,6 +306,7 @@ export async function POST(request: Request) {
   }
 
   return Response.json({ hits, query, elapsed_ms: Date.now() - start });
+  END SEMANTIC PIPELINE COMMENT */
 }
 
 // ---------------------------------------------------------------------------
