@@ -88,105 +88,126 @@ const API_BASE = '/dashboard';
 // captured from a real session so the visual + behavior demos accurately.
 const IS_DEMO = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
 
-const DEMO_QUERY = 'how did context_snapshot evolve today';
+// Demo data matches the space-logistics theme of MOCK_PROJECTS / MOCK_PACKAGES
+// in lib/mockData.ts so the search panel feels coherent with the rest of
+// the demo dashboard (Oort Resupply, Kepler Mining, Nightingale launch).
+const DEMO_QUERY = 'graviton turbulence Lagrange routing';
+
 const DEMO_HITS: Hit[] = [
   {
-    package_id: 'pkg_e0e94fcc06764397aa09b8b0b2e7059f',
-    project_id: 'proj_dev_relay',
-    project_name: 'Relay',
-    title: '[KEY] Today shipped: context_snapshot end-to-end (schema -> code -> hook -> docs -> dashboard)',
+    package_id: 'pkg_oort_002',
+    project_id: 'proj_oort_resupply',
+    project_name: 'Oort Resupply Corridor',
+    title: '[KEY 9] Pilot reported graviton turbulence at Lagrange-4 — rerouting via L-5',
     description:
-      "Single day of work landed context_snapshot as a first-class deposit field across all layers of Relay. Started as a /tpl-context-report side-feature skill, then we re-framed it as a system feature -- absorbed into the deposit payload itself. Both manual deposits (CLI + MCP) and auto-deposits (via PostToolUse hook) now carry a structured inventory of files in the agent's conversation context at deposit time.",
+      'Autobot Lumen detected unexpected gravitational shear on approach to L-4 skip point. Current nav model does not account for Saturn ring-system perturbations at this declination. Rerouting adds 8 hours but keeps hull stress within spec.',
     handoff_note:
-      'End-of-day state: context_snapshot is now a fully-realized first-class deposit field. Schema 014 applied to prod. Code paths: manual CLI, MCP, and auto-deposits via PostToolUse hook -> log -> synthesize -> attach -> truncate. Dashboard: Timeline.tsx chip + ProjectCards.tsx detail block + collapsed-row C indicator.',
+      'Update nav model to flag L-4 declination band as elevated risk for any payload above 1,200 tons. Captain Vance briefed on revised arrival window. Coordinate with Europa control before final approach.',
     content:
-      'Re-framed context_snapshot from skill-as-side-feature to first-class deposit payload field -- chose richer protocol over preserved signal density. Tradeoff accepted: bigger packages, schema migration cost, dashboard rendering work',
-    similarity: 1.0,
-    created_at: '2026-05-21T01:49:12.533558+00:00',
-    topic: 'deposits',
-    artifact_type: 'milestone',
-    significance: 10,
-    callsign: null,
-  },
-  {
-    package_id: 'pkg_06b87f1ee45c461195d5b7be1cec8db9',
-    project_id: 'proj_dev_relay',
-    project_name: 'Relay',
-    title: '[KEY] context_snapshot is now a first-class deposit field',
-    description:
-      'Relay deposits can now carry a context_snapshot -- a structured inventory of the files in the depositing agent\'s conversation context at deposit time. Manual deposits populate it; auto-deposits do not yet (Fork B follow-up). Migration 014 adds the nullable jsonb column with a partial "has snapshot" index. Core, CLI, MCP, dashboard chip, and the tpl-context-report skill all shipped together.',
-    handoff_note:
-      'context_snapshot shipped on both repos. This is bigger than skills-as-side-feature; the deposit model itself changed.',
-    content:
-      'Relay deposits can now carry a context_snapshot. Migration 014 adds the nullable jsonb column.',
-    similarity: 0.94,
-    created_at: '2026-05-20T19:55:36.896525+00:00',
-    topic: 'deposits',
-    artifact_type: 'milestone',
-    significance: 10,
-    callsign: 'vivid-kestrel',
-  },
-  {
-    package_id: 'pkg_ef84fe356f0a49af973c15f8609d1dde',
-    project_id: 'proj_dev_relay',
-    project_name: 'Relay',
-    title: '[KEY] Fork B shipped — auto-deposits carry context_snapshot via PostToolUse hook',
-    description:
-      "Closes the fragmentation gap from the v1 context_snapshot release: now BOTH manual deposits and stop-hook auto-deposits can carry snapshots. Mechanism is passive observation -- a new PostToolUse hook (relay hook log-tool) appends every file the agent touches to per-cwd .relay/context-log.jsonl; the existing stop-hook auto-deposit reads it, synthesizes a ContextSnapshot, attaches, and truncates the log.",
-    handoff_note:
-      'Fork B shipped on both repos. The dataset will no longer fragment.',
-    content:
-      'Passive observation via PostToolUse over agent-prompted snapshot writes — simpler, no fragile agent participation, just hooks.',
-    similarity: 0.88,
-    created_at: '2026-05-20T21:23:00.000000+00:00',
-    topic: 'deposits',
-    artifact_type: 'milestone',
+      'Rerouting via L-5 adds 8 hours but keeps hull stress within spec. The nav-model gap is the real story — L-4 is still safe for smaller payloads, just not the deuterium runs at current mass loadout',
+    similarity: 0.96,
+    created_at: '2026-05-22T14:12:00.000000+00:00',
+    topic: 'navigation',
+    artifact_type: 'analysis',
     significance: 9,
-    callsign: 'vivid-kestrel',
+    callsign: 'amber-wren',
   },
   {
-    package_id: 'pkg_70f941dbc95c42e4b3d1e11afc82095d',
-    project_id: 'proj_dev_relay',
-    project_name: 'Relay',
-    title: '[SIG] skills bundle shipped public — tpl-context-report + tpl-handoff at github.com/Tensorpunk-Labs/relay',
+    package_id: 'pkg_oort_005',
+    project_id: 'proj_oort_resupply',
+    project_name: 'Oort Resupply Corridor',
+    title: '[SIG 7] Reaction mass topped off at Ceres — 1,440 tons loaded',
     description:
-      "Two TPL workflow skills now ship in the public Relay repo's skills/ dir alongside using-relay. GitLab commit a1bf0e5 -> public-export scrub -> GitHub commit 611c415.",
-    handoff_note: null,
-    content:
-      'tpl-* skills ship under relay/skills/ rather than a new tensorpunk-labs/skills home -- Relay is the public surface',
-    similarity: 0.71,
-    created_at: '2026-05-20T17:10:00.000000+00:00',
-    topic: 'distribution',
-    artifact_type: 'milestone',
-    significance: 8,
-    callsign: 'vivid-kestrel',
-  },
-  {
-    package_id: 'pkg_8cc595869f3a43139633f884a62f487c',
-    project_id: 'proj_dev_relay',
-    project_name: 'Relay',
-    title: "[SIG] PostToolUse hook installed in the developer's settings.json + docs/HOOKS.md shipped",
-    description:
-      "Wired the developer's ~/.claude/settings.json PostToolUse hook so auto-deposits start carrying context_snapshot once next session boots. New docs/HOOKS.md documents the three Relay-related Claude Code hooks.",
+      'Ceres refinery dispatched fuel under spec by 60 tons due to pump-3 maintenance window. Crew topped off via auxiliary tanker; mass budget intact for L-5 reroute and Europa unload return-leg.',
     handoff_note:
-      'User-side hook is now wired in the developer\'s settings.json -- effective on next Claude Code restart.',
-    content: 'PostToolUse hook installed in ~/.claude/settings.json',
-    similarity: 0.66,
-    created_at: '2026-05-20T22:35:00.000000+00:00',
-    topic: 'deposits',
+      'Pump-3 back online estimated +18h. If we miss the next launch window we should re-confirm reaction mass before commit. Mass budget tight under the new routing.',
+    content:
+      'Reaction mass topped off at Ceres — 1,440 tons loaded. Budget intact for L-5 reroute and Europa return-leg.',
+    similarity: 0.74,
+    created_at: '2026-05-22T08:30:00.000000+00:00',
+    topic: 'logistics',
     artifact_type: 'decision',
     significance: 7,
-    callsign: 'vivid-kestrel',
+    callsign: 'amber-wren',
+  },
+  {
+    package_id: 'pkg_kepler_017',
+    project_id: 'proj_kepler_mining',
+    project_name: 'Kepler-442b Mining Run',
+    title: '[SIG 8] Lagrange transit lane crossover — Kepler convoy yielding to Oort priority',
+    description:
+      'Scheduling conflict at L-3 between outbound ore convoy and inbound Oort resupply. Yielded to Oort per fleet-priority matrix; Kepler convoy holds 4 hours at Mars proximity buoy. Re-runs the trajectory math against updated solar weather forecast on resume.',
+    handoff_note:
+      'Captain Marsden ack — 4-hour hold accepted. Verify ore-hold cryo within tolerance after the delay; ice-rich samples have a 6-hour passive window.',
+    content:
+      'L-3 transit conflict resolved by yield. Kepler holds 4h at Mars proximity buoy, re-running trajectory on resume.',
+    similarity: 0.68,
+    created_at: '2026-05-22T11:45:00.000000+00:00',
+    topic: 'coordination',
+    artifact_type: 'decision',
+    significance: 8,
+    callsign: 'iron-petrel',
+  },
+  {
+    package_id: 'pkg_oort_009',
+    project_id: 'proj_oort_resupply',
+    project_name: 'Oort Resupply Corridor',
+    title: '[KEY 10] Nightingale launch window OPEN — departure 0400 station time',
+    description:
+      'All systems green. Final go from Commander Shepard. Manifest 4418 confirmed loaded with deuterium cells + hull plating + cryo-medical batch for Europa Dry Dock. Routing accommodates Lagrange-4 detour from earlier graviton turbulence advisory.',
+    handoff_note:
+      'Departure 0400. Arrival window Europa 0800–1400 station time. Coordinate unload crew with Commander Shepard before final approach.',
+    content:
+      'Final go. Manifest 4418 loaded. Routing accommodates the L-4 → L-5 detour.',
+    similarity: 0.59,
+    created_at: '2026-05-22T18:20:00.000000+00:00',
+    topic: 'launch',
+    artifact_type: 'milestone',
+    significance: 10,
+    callsign: 'amber-wren',
+  },
+  {
+    package_id: 'pkg_oort_023',
+    project_id: 'proj_oort_resupply',
+    project_name: 'Oort Resupply Corridor',
+    title: '[auto] nav: trajectory checkpoint T-02:45 synced',
+    description:
+      'Auto-deposit from nav system. Trajectory locked, all checkpoints within tolerance through L-5 hand-off. No anomalies since the graviton-turbulence advisory.',
+    handoff_note: '',
+    content:
+      'Trajectory locked. L-5 hand-off nominal. No anomalies since the graviton-turbulence advisory.',
+    similarity: 0.41,
+    created_at: '2026-05-22T20:15:00.000000+00:00',
+    topic: 'navigation',
+    artifact_type: 'auto-deposit',
+    significance: 2,
+    callsign: null,
   },
 ];
 
-const DEMO_SUMMARY = `The arc today was a deliberate reframing: \`context_snapshot\` began as a side-feature of the \`/tpl-context-report\` skill and was consciously pulled up into the deposit model itself — "bigger than skills-as-side-feature; the deposit model itself changed." The midday deposit *context_snapshot is now a first-class deposit field* captured the inflection point: migration 014 added the nullable jsonb column, CLI got \`--context-snapshot\`, the MCP tool got a top-level \`context_snapshot\` parameter, and a dashboard chip landed in \`Timeline.tsx\`. The explicit tradeoff accepted was "richer protocol over preserved signal density" — bigger packages and schema migration cost in exchange for deposits answering a fourth question: *what files was the agent looking at when this decision was made*.
+const DEMO_SUMMARY = `The through-line is a navigation-model gap exposed by *Pilot reported graviton turbulence at Lagrange-4* — the current nav model "does not account for Saturn ring-system perturbations at this declination" for the deuterium-mass class. The crew's response was disciplined and consistent: reroute via L-5 (eight extra hours, hull stress within spec), top off reaction mass at Ceres to cover the extended budget, and yield the L-3 transit lane to Oort so Kepler-442b's ore convoy holds 4 hours at Mars proximity. By the time *Nightingale launch window OPEN* fires, the L-4 detour is baked into the manifest and departure proceeds nominally.
 
-The end-of-day deposit *Today shipped: context_snapshot end-to-end* shows everything that filled in after that midpoint: Fork B (PostToolUse hook auto-capture), the full dashboard detail block in \`ProjectCards.tsx\` and the collapsed-row "C" indicator, docs at \`relaymemory.com/context-snapshot\`, \`docs/HOOKS.md\`, and README install step 7, plus the prod migration applied and end-to-end tested. Commits \`a1bf0e5\` through \`09c83e2\` on GitLab main trace the full day.
+What's NOT in these results is any decision about updating the nav model itself. The handoff on the turbulence deposit says "Update nav model to flag L-4 declination band as elevated risk for any payload above 1,200 tons" — that's filed as a follow-up but no later deposit picks it up. The auto-deposit *trajectory checkpoint T-02:45 synced* shows the L-5 routing working cleanly, but it's a symptomatic patch on the underlying gap.
 
-One loose end is explicit in the handoff: "PostToolUse hook installed in settings.json but not effective until restart" — so auto-deposits don't actually carry snapshots yet in any live session that hasn't been restarted since the hook was written. The obvious next move is wiring \`context_snapshot\` data into \`context_md\` so file-path queries surface packages where those files were in scope.`;
+The next concrete move suggested by the deposit chain: schedule the nav-model update before the next deuterium-class run, otherwise every future Oort departure pays the same 8-hour detour and burns through Ceres' reaction-mass headroom faster than the refinery can keep up.`;
 
-const DEMO_SUMMARY_META = { model: 'claude-sonnet-4-6', elapsed_ms: 12835 };
+const DEMO_SUMMARY_META = { model: 'claude-sonnet-4-6', elapsed_ms: 11420 };
+
+// Filter canned hits by substring match on the query — gives keyword mode
+// in demo a "real" feel without hitting any backend. Always returns at
+// least the full set if no matches so visitors see something.
+function filterDemoHits(q: string): Hit[] {
+  const qLower = q.toLowerCase().trim();
+  if (!qLower) return DEMO_HITS;
+  const matches = DEMO_HITS.filter(
+    (h) =>
+      h.title.toLowerCase().includes(qLower) ||
+      (h.description ?? '').toLowerCase().includes(qLower) ||
+      (h.handoff_note ?? '').toLowerCase().includes(qLower) ||
+      (h.content ?? '').toLowerCase().includes(qLower),
+  );
+  return matches.length > 0 ? matches : DEMO_HITS;
+}
 
 // Status messages cycle while the search is running so the loading state
 // communicates more than a dead spinner. Tuples are [seconds-elapsed, text].
@@ -236,8 +257,22 @@ export default function SearchPanel() {
   const searchTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const synthTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Load projects for filter row
+  // Load projects for filter row. In demo mode, derive from the canned
+  // hits so the chip row reflects the demo dataset; otherwise hit the
+  // live Supabase.
   useEffect(() => {
+    if (IS_DEMO) {
+      const seen = new Set<string>();
+      const list: Project[] = [];
+      for (const h of DEMO_HITS) {
+        if (!seen.has(h.project_id)) {
+          seen.add(h.project_id);
+          list.push({ id: h.project_id, name: h.project_name });
+        }
+      }
+      setProjects(list);
+      return;
+    }
     let cancelled = false;
     (async () => {
       const { data } = await supabase
@@ -267,11 +302,13 @@ export default function SearchPanel() {
     return id;
   };
 
-  // Demo mode gating: in semantic mode on the public deploy, the search
-  // bar is replaced by a "show demo" affordance — clicking loads canned
-  // hits and the canned synthesis with zero API calls. Keyword mode stays
-  // fully live since it's a read-only ilike query against existing data.
-  const isDemoSemantic = IS_DEMO && mode === 'semantic';
+  // Demo mode gating: the public dashboard runs entirely on mock data
+  // (NEXT_PUBLIC_MOCK_DATA in lib/supabase.ts), so ALL search modes
+  // serve canned data — no backend call, no Anthropic spend. Keyword
+  // mode filters the canned hits by substring on the query so it still
+  // feels like searching; semantic mode returns the full canned set
+  // plus loads the canned synthesis on Synthesize.
+  const isDemo = IS_DEMO;
 
   const loadDemo = useCallback(() => {
     setQuery(DEMO_QUERY);
@@ -288,11 +325,28 @@ export default function SearchPanel() {
     const q = query.trim();
     if (!q) return;
 
-    // In demo + semantic, the search button is wired to loadDemo() at the
-    // UI layer, so runSearch() is only called via the search-bar Enter
-    // path. Mirror the gating here for safety.
-    if (isDemoSemantic) {
-      loadDemo();
+    // Demo mode: short-circuit BOTH modes to canned data. Keyword filters
+    // by substring on the query; semantic returns the full canned set
+    // (Synthesize then operates on it). Brief fake loading so the UI
+    // feels alive without an actual backend roundtrip.
+    if (isDemo) {
+      setLoading(true);
+      setError(null);
+      setSummary(null);
+      setSummaryMeta(null);
+      setSummaryError(null);
+      setExpandedId(null);
+      setLoadingStatus(
+        mode === 'keyword'
+          ? 'Filtering demo dataset…'
+          : 'Loading demo semantic hits…',
+      );
+      await new Promise((r) => setTimeout(r, 400));
+      const filtered = mode === 'keyword' ? filterDemoHits(q) : DEMO_HITS;
+      setHits(filtered);
+      setElapsedMs(mode === 'keyword' ? 12 : DEMO_SUMMARY_META.elapsed_ms);
+      setLoadingStatus('');
+      setLoading(false);
       return;
     }
 
@@ -334,7 +388,7 @@ export default function SearchPanel() {
       setLoadingStatus('');
       setLoading(false);
     }
-  }, [query, projectId, daysWindow, mode, isDemoSemantic, loadDemo]);
+  }, [query, projectId, daysWindow, mode, isDemo]);
 
   const runSynthesize = useCallback(async () => {
     if (hits.length === 0) return;
@@ -419,7 +473,37 @@ export default function SearchPanel() {
         return;
       }
       setExpandedId(hit.package_id);
-      // Lazy-load full package on first open
+
+      // In demo mode there's no DB to fetch from — build a synthetic
+      // FullPackage from the hit itself so the expanded view still
+      // renders something coherent.
+      if (IS_DEMO) {
+        if (!fullPackageCache[hit.package_id]) {
+          setFullPackageCache((prev) => ({
+            ...prev,
+            [hit.package_id]: {
+              id: hit.package_id,
+              title: hit.title,
+              description: hit.description,
+              decisions_made: [],
+              open_questions: [],
+              handoff_note: hit.handoff_note,
+              deliverables: [],
+              status: 'complete',
+              package_type: 'standard',
+              topic: hit.topic,
+              artifact_type: hit.artifact_type,
+              created_at: hit.created_at,
+              created_by_type: 'agent',
+              created_by_id: hit.callsign ?? 'demo',
+              context_snapshot: null,
+            },
+          }));
+        }
+        return;
+      }
+
+      // Lazy-load full package on first open from live Supabase.
       if (!fullPackageCache[hit.package_id]) {
         setPackageLoadingId(hit.package_id);
         const { data } = await supabase
@@ -447,8 +531,8 @@ export default function SearchPanel() {
 
   return (
     <div className="rs-panel rs-panel-raised" style={{ padding: '14px 16px' }}>
-      {/* Demo banner — only on public deploy in semantic mode */}
-      {isDemoSemantic && (
+      {/* Demo banner — public deploy is 100% mock data */}
+      {isDemo && (
         <div
           className="mb-3 rounded px-3 py-2 flex items-center gap-3 flex-wrap"
           style={{
@@ -474,9 +558,8 @@ export default function SearchPanel() {
             className="rs-text-mono text-[10px] grow"
             style={{ color: 'rgba(255, 179, 71, 0.75)', lineHeight: 1.55 }}
           >
-            Semantic search and LLM synthesis on the public dashboard are gated to a canned example.
-            Click <strong style={{ color: 'rgba(255, 179, 71, 0.95)' }}>Show demo</strong> below to see the
-            real visual + behavior with pre-loaded results. Keyword mode is fully live — toggle above to try real queries.
+            This public dashboard runs on mock data only — no live database, no API calls. The search panel demonstrates the real UX and behavior against a canned dataset.
+            Try a query (keyword filters; semantic returns the full set), then click <strong style={{ color: 'rgba(255, 179, 71, 0.95)' }}>Synthesize</strong> for a pre-recorded Claude paragraph. Self-host from <a href="https://github.com/Tensorpunk-Labs/relay" target="_blank" rel="noopener" style={{ color: 'rgba(255, 179, 71, 0.95)' }}>github.com/Tensorpunk-Labs/relay</a> to run live.
           </span>
           <button
             type="button"
@@ -506,10 +589,9 @@ export default function SearchPanel() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={onKeyDown}
-          disabled={isDemoSemantic}
           placeholder={
-            isDemoSemantic
-              ? 'Live semantic search is gated in demo mode — use Show demo above, or switch to KEYWORD'
+            isDemo
+              ? 'try \'graviton\', \'Lagrange\', \'Nightingale\' — keyword filters the canned dataset'
               : 'search context — try \'context snapshot\', \'Retro\', \'PostToolUse hook\'…'
           }
           spellCheck={false}
@@ -517,31 +599,29 @@ export default function SearchPanel() {
           className="rs-text-mono text-[12px] grow"
           style={{
             background: 'rgba(8, 10, 14, 0.85)',
-            border: `1px solid ${isDemoSemantic ? 'rgba(255, 179, 71, 0.20)' : 'rgba(127, 255, 212, 0.20)'}`,
-            color: isDemoSemantic ? 'rgba(255, 179, 71, 0.55)' : 'rgba(127, 255, 212, 0.95)',
+            border: '1px solid rgba(127, 255, 212, 0.20)',
+            color: 'rgba(127, 255, 212, 0.95)',
             padding: '8px 12px',
             borderRadius: 6,
             outline: 'none',
-            cursor: isDemoSemantic ? 'not-allowed' : 'text',
           }}
         />
         <button
           type="button"
           onClick={runSearch}
-          disabled={loading || !query.trim() || isDemoSemantic}
+          disabled={loading || !query.trim()}
           className="rs-text-mono text-[11px]"
           style={{
             padding: '6px 16px',
-            background: loading || isDemoSemantic ? 'rgba(127, 255, 212, 0.05)' : 'rgba(127, 255, 212, 0.12)',
-            border: `1px solid ${isDemoSemantic ? 'rgba(127, 255, 212, 0.18)' : 'rgba(127, 255, 212, 0.45)'}`,
-            color: isDemoSemantic ? 'rgba(127, 255, 212, 0.35)' : 'rgba(127, 255, 212, 0.95)',
-            cursor: loading || !query.trim() || isDemoSemantic ? 'not-allowed' : 'pointer',
+            background: loading ? 'rgba(127, 255, 212, 0.05)' : 'rgba(127, 255, 212, 0.12)',
+            border: '1px solid rgba(127, 255, 212, 0.45)',
+            color: 'rgba(127, 255, 212, 0.95)',
+            cursor: loading || !query.trim() ? 'not-allowed' : 'pointer',
             letterSpacing: 1.5,
             textTransform: 'uppercase',
             borderRadius: 6,
             minWidth: 96,
           }}
-          title={isDemoSemantic ? 'Live semantic search is gated in demo mode' : ''}
         >
           {loading ? <LoadingDots /> : 'SEARCH'}
         </button>
@@ -709,7 +789,7 @@ export default function SearchPanel() {
                 ? `error: ${error}`
                 : `${hits.length} hit${hits.length === 1 ? '' : 's'}${elapsedMs ? ` · ${elapsedMs}ms` : ''} · ${mode}`}
             </span>
-            {IS_DEMO && mode === 'semantic' && hits.length > 0 && (
+            {IS_DEMO && hits.length > 0 && (
               <span
                 className="rs-text-mono"
                 style={{
@@ -721,7 +801,7 @@ export default function SearchPanel() {
                   letterSpacing: 1.5,
                   textTransform: 'uppercase',
                 }}
-                title="Pre-recorded — real hits from a live session, served instantly to avoid API spend on the public demo"
+                title="Canned dataset — public dashboard runs on mock data only"
               >
                 DEMO
               </span>
