@@ -20,6 +20,7 @@ export function depositCommand(): Command {
     .option('--topic <topic>', 'Topic/subject area (auto-inferred if omitted)')
     .option('--type <type>', 'Artifact type: decision, analysis, handoff, question, milestone (auto-inferred if omitted)')
     .option('--context-snapshot <path>', 'Path to a JSON file containing a ContextSnapshot (see @relay/core types). Sensitive paths are redacted before persistence.')
+    .option('--with-transcript', 'Also capture the current Claude Code session transcript (gzip + AES-256-GCM encrypted) so this session can be resumed later via `relay resume`.')
     .action(async (opts) => {
       try {
         const client = await RelayClient.fromConfig();
@@ -85,11 +86,16 @@ export function depositCommand(): Command {
           topic: opts.topic,
           artifactType: opts.type,
           contextSnapshot,
+          withTranscript: opts.withTranscript,
         });
 
         if (!opts.quiet) {
           console.log(`Deposited: ${pkg.package_id}`);
           console.log(`Title: ${pkg.title}`);
+          if (opts.withTranscript) {
+            // Actual capture success/skip is logged to stderr by the client.
+            console.log('Resume this session later: relay resume ' + pkg.package_id);
+          }
         }
       } catch (err) {
         if (!opts.quiet) {

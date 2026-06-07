@@ -204,6 +204,25 @@ export async function registerTools(server: Server) {
           },
         },
       },
+      {
+        name: 'relay_resume',
+        description:
+          'Find and/or restore a Claude Code session captured in a Relay deposit. Pass `query` to find the shell that worked on a topic ("the session we used for Y") — returns matches with ready restore commands. Pass `id` (a package id or Claude session id) to restore: by default it rebuilds the transcript locally and returns the `claude --resume` command; set `inline: true` to instead return the decrypted conversation text so you can fold it directly into the current session.',
+        inputSchema: {
+          type: 'object' as const,
+          properties: {
+            query: { type: 'string', description: 'Topic to find a resumable session for' },
+            id: { type: 'string', description: 'Package id (pkg_…) or Claude session id to restore' },
+            inline: {
+              type: 'boolean',
+              description: 'Return the decrypted transcript text instead of writing a .jsonl + resume command',
+              default: false,
+            },
+            project_id: { type: 'string', description: 'Optional project to scope a query search' },
+            limit: { type: 'number', description: 'Max results in query mode (default 10)', default: 10 },
+          },
+        },
+      },
     ],
   }));
 
@@ -495,6 +514,49 @@ export async function registerTools(server: Server) {
             `=== ${projectId} (${digest.packagesAnalyzed} packages) ===\n\n${digest.assembledContext}`
           ).join('\n\n');
           return { content: [{ type: 'text' as const, text: text || 'No packages found.' }] };
+        }
+
+        case 'relay_resume': {
+          if (a.id) {
+            const res = await client.resume(a.id as string, { inline: Boolean(a.inline) });
+            if (res.mode === 'inline') {
+              return { content: [{ type: 'text' as const, text: res.transcript ?? '' }] };
+            }
+            const note = res.crossMachine
+              ? `\n\nNote: recorded on "${res.originHost}". The conversation resumes faithfully, but absolute paths and tool references from that machine may not resolve here.`
+              : '';
+            return {
+              content: [
+                {
+                  type: 'text' as const,
+                  text: `Restored session ${res.sessionId} -> ${res.jsonlPath} (${res.bytes} bytes).\n\nResume:\n  ${res.resumeCommand}${note}`,
+                },
+              ],
+            };
+          }
+          if (a.query) {
+            const list = await client.findResumableSessions(
+              a.query as string,
+              a.project_id as string | undefined,
+              (a.limit as number) || 10,
+            );
+            if (list.length === 0) {
+              return { content: [{ type: 'text' as const, text: 'No resumable sessions matched.' }] };
+            }
+            const text = list
+              .map((s) => {
+                const score = s.similarity != null ? ` (${(s.similarity * 100).toFixed(0)}%)` : '';
+                const host = s.originHost ? ` @${s.originHost}` : '';
+                const tx = s.hasTranscript ? 'restorable' : 'session-id only';
+                return `${s.title}${score}\n  session ${s.sessionId}${host} — ${tx}\n  ${s.restoreCommand}`;
+              })
+              .join('\n\n');
+            return { content: [{ type: 'text' as const, text }] };
+          }
+          return {
+            content: [{ type: 'text' as const, text: 'Provide `query` (to find a session) or `id` (to restore one).' }],
+            isError: true,
+          };
         }
 
         default:

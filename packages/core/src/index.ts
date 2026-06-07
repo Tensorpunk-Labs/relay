@@ -78,3 +78,23 @@ export {
   type SyncCounts,
   type SyncProgressEvent,
 } from './sync.js';
+export {
+  KEY_PATH,
+  loadOrCreateKey,
+  loadKey,
+  keyId,
+  sha256,
+  encrypt,
+  decrypt,
+  packAndUpload,
+  downloadAndUnpack,
+  CURRENT_SESSION_PATH,
+  encodeProjectPath,
+  claudeProjectsDir,
+  readCurrentSession,
+  thisHost,
+  type EncryptedBlob,
+  type StoragePort,
+  type TranscriptBlobRef,
+  type SessionRef,
+} from './continuity/index.js';

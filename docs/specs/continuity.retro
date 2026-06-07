@@ -1,0 +1,626 @@
+// Prompt: Relay Continuity: every Relay deposit carries the Claude Code session resume ID,
+// and optionally an encrypted gzipped blob of the full conversation transcript, so any session
+// can be resumed later on this machine or another.
+//
+// Spec built backwards: guarantees -> ingredients -> choreography -> code.
+// Validate between each level: retro validate docs/specs/continuity.retro
+
+system RelayContinuity {
+
+  @future {
+
+    guarantee resume_fidelity {
+      description: "A transcript restored from a deposit is byte-identical to the one captured. No silent corruption."
+      constraint: restored_byte_diff == 0
+    }
+
+    guarantee transcript_confidentiality {
+      description: "Transcripts at rest in the Relay backend are encrypted client-side. The server never sees plaintext."
+      constraint: server_plaintext_bytes == 0
+    }
+
+    guarantee transcript_opt_in {
+      description: "A conversation transcript is uploaded only when the user explicitly asks for it. Default deposits carry metadata only."
+      constraint: uploads_without_flag == 0
+    }
+
+    guarantee key_safety {
+      description: "Resume refuses to write a transcript decrypted with the wrong key. No garbage files land in the Claude projects dir."
+      constraint: wrong_key_writes == 0
+    }
+
+    guarantee capture_overhead {
+      description: "Automatic session-id capture is cheap enough to run on every deposit without noticeable slowdown."
+      constraint: added_capture_latency_ms < 50
+    }
+
+    guarantee discoverable_resume {
+      description: "An agent can locate a resumable session by topic and get back a concrete restoration command."
+      constraint: search_returns_restore_command == 1
+    }
+
+    behavior capture_session {
+      scope: per_deposit
+      records: session_id_cwd_projectpath_host
+    }
+
+    behavior store_transcript {
+      scope: opt_in
+      format: encrypted_gzip_jsonl
+    }
+
+    behavior resume_session {
+      scope: per_session
+      produces: local_jsonl_plus_resume_command
+    }
+
+    behavior search_sessions {
+      scope: per_project
+      produces: session_matches_with_restore_commands
+    }
+
+    behavior surface_restorable {
+      scope: per_deposit
+      format: dashboard_badge
+    }
+  }
+
+  @shape {
+
+    module SessionStamp {
+      serves: [capture_overhead, discoverable_resume]
+      accepts: [HookPayload]
+      emits: [SessionRef]
+      // A SessionStart hook reads Claude Code's JSON stdin (session_id, transcript_path, cwd)
+      // and writes ~/.relay/current-session.json so the running shell knows its own resume id.
+      @version("node-hook", active) {
+        runtime: node
+        sink: current_session_json
+        derives: project_path_encoded_from_cwd
+      }
+    }
+
+    module DepositCapture {
+      serves: [capture_overhead, transcript_opt_in, discoverable_resume]
+      accepts: [SessionRef, DepositRequest]
+      emits: [PackageRow, TranscriptText]
+      // Extends the existing deposit path (CLI + Stop hook). Always attaches SessionRef metadata.
+      // Only reads + forwards the transcript when --with-transcript is set.
+      @version("flag-gated", active) {
+        host: relay_core
+        metadata: always
+        transcript: only_with_flag
+      }
+    }
+
+    module TranscriptCrypto {
+      serves: [transcript_confidentiality, key_safety, resume_fidelity]
+      accepts: [TranscriptText, KeyId]
+      emits: [CipherBlob, KeyId]
+      // Auto-generated 32-byte keyfile at ~/.relay/transcript.key (0600). AES-256-GCM.
+      // key_id = short fingerprint of the key so resume can verify the right key is present.
+      // sha256 of plaintext travels with the blob to prove byte-identical restore.
+      @version("aes-256-gcm", active) {
+        cipher: aes_256_gcm
+        keyfile: relay_transcript_key
+        fingerprint: key_id
+        integrity: sha256
+      }
+      @version("age", dormant, reason: "extra dependency; node:crypto GCM is built-in and sufficient for a single-user keyfile") {
+        cipher: age
+      }
+    }
+
+    module TranscriptStore {
+      serves: [transcript_confidentiality, transcript_opt_in]
+      accepts: [CipherBlob, BlobRef]
+      emits: [BlobRef, CipherBlob]
+      // gzip happens before encryption; ciphertext is uploaded to a private Supabase Storage bucket.
+      @version("supabase-storage", active) {
+        backend: supabase_storage
+        bucket: context_transcripts
+        visibility: private
+        compression: gzip
+      }
+      @version("inline-column", dormant, reason: "transcripts can exceed Postgres row/payload limits; a storage bucket scales") {
+        backend: base64_column
+      }
+    }
+
+    module ResumeEngine {
+      serves: [resume_fidelity, key_safety]
+      accepts: [CipherBlob, KeyId]
+      emits: [LocalTranscript, ResumeCommand]
+      // fetch -> verify key_id match -> decrypt -> gunzip -> verify sha256 -> write
+      // ~/.claude/projects/<project_path_encoded>/<session_id>.jsonl -> print `claude --resume`.
+      // --inline variant reads the transcript and folds a summary into the current context
+      // instead of writing a file (can't hot-swap a live session).
+      @version("verify-then-write", active) {
+        order: verify_key_then_sha_then_write
+        abort_on: key_mismatch_or_sha_mismatch
+        inline_mode: summarize_into_context
+      }
+    }
+
+    module SessionSearch {
+      serves: [discoverable_resume]
+      accepts: [Query]
+      emits: [SessionMatch, BlobRef]
+      // Semantic search over deposits that carry a session_id; returns matches plus the exact
+      // restore command. Exposed as CLI `relay sessions find` and MCP tool `relay_resume`.
+      @version("pgvector-rag", active) {
+        backend: pgvector
+        surface: cli_and_mcp
+        returns: session_id_plus_restore_command
+      }
+    }
+
+    module RestorableBadge {
+      serves: [discoverable_resume]
+      accepts: [PackageRow]
+      emits: [BadgeView]
+      // Dashboard surfaces a "Continuity restorable" badge on deposits that carry a transcript blob.
+      @version("nextjs-badge", active) {
+        framework: nextjs
+        app: apps_web
+        trigger: package_has_transcript_blob
+      }
+    }
+  }
+
+  @flow {
+
+    // Tier 1: a fresh shell stamps its own resume id, ready for the next deposit to attach.
+    on HookPayload from ClaudeCode {
+      stamp(SessionStamp, HookPayload)
+        -> SessionRef
+        -> attach(DepositCapture, SessionRef)
+    }
+
+    // Tier 2: opt-in transcript travels plaintext -> gzip+encrypt -> private blob store.
+    on DepositRequest from User {
+      read(DepositCapture, DepositRequest)
+        -> TranscriptText
+        -> encrypt(TranscriptCrypto, TranscriptText)
+        -> CipherBlob
+        -> store(TranscriptStore, CipherBlob)
+        -> BlobRef
+    }
+
+    // Resume: find the session, pull its blob, verify+decrypt, hand back a restore command.
+    on Query from User {
+      locate(SessionSearch, Query)
+        -> BlobRef
+        -> download(TranscriptStore, BlobRef)
+        -> CipherBlob
+        -> rebuild(ResumeEngine, CipherBlob)
+        -> ResumeCommand
+    }
+
+    // Dashboard: a deposit carrying a transcript blob renders the "continuity restorable" badge.
+    on PackageRow from Dashboard {
+      load(DepositCapture, DepositRequest)
+        -> PackageRow
+        -> render(RestorableBadge, PackageRow)
+        -> BadgeView
+    }
+  }
+
+  @impl(target: typescript) {
+
+    // INTEGRATION MANIFEST (patches to existing files, applied after emit):
+    //   packages/cli/src/index.ts      — add `relay resume`, `relay sessions list|find`,
+    //                                     `--with-transcript` flag on `deposit`.
+    //   packages/core/src/client.ts     — deposit() records session_id/cwd/project_path_encoded/host
+    //                                     from ~/.relay/current-session.json; optional transcript pack.
+    //                                     GATED by config `continuity` (default off) so deposits keep
+    //                                     inserting against a pre-015 schema until the migration lands.
+    //   packages/mcp/src/index.ts       — register `relay_resume` tool (search -> restore command).
+    //   hooks (settings)                — wire hooks/session-start.mjs to SessionStart event.
+    //   apps/web                        — RestorableBadge on packages whose row has a transcript blob.
+
+    file "packages/core/src/continuity/crypto.ts" {
+      // TranscriptCrypto — AES-256-GCM over an auto-generated 32-byte keyfile.
+      // Serves: transcript_confidentiality, key_safety, resume_fidelity.
+      import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto';
+      import { existsSync, readFileSync, writeFileSync, chmodSync, mkdirSync } from 'node:fs';
+      import { homedir } from 'node:os';
+      import { join, dirname } from 'node:path';
+
+      const ALGO = 'aes-256-gcm';
+      export const KEY_PATH = join(homedir(), '.relay', 'transcript.key');
+
+      export interface EncryptedBlob {
+        iv: string;        // base64, 12-byte GCM nonce
+        authTag: string;   // base64, 16-byte GCM tag (ciphertext integrity)
+        ciphertext: Buffer;
+        keyId: string;     // fingerprint of the key used
+      }
+
+      function assert32(key: Buffer): Buffer {
+        if (key.length !== 32) {
+          throw new Error(`Relay transcript key is ${key.length} bytes, expected 32: ${KEY_PATH}`);
+        }
+        return key;
+      }
+
+      /** Load the local keyfile, generating a fresh 0600 key on first use. */
+      export function loadOrCreateKey(): { key: Buffer; created: boolean } {
+        if (existsSync(KEY_PATH)) return { key: assert32(readFileSync(KEY_PATH)), created: false };
+        const key = randomBytes(32);
+        mkdirSync(dirname(KEY_PATH), { recursive: true });
+        writeFileSync(KEY_PATH, key, { mode: 0o600 });
+        try { chmodSync(KEY_PATH, 0o600); } catch { /* non-posix fs */ }
+        return { key, created: true };
+      }
+
+      /** Load the local keyfile, throwing if absent (resume path must not invent a key). */
+      export function loadKey(): Buffer {
+        if (!existsSync(KEY_PATH)) {
+          throw new Error(`No transcript key at ${KEY_PATH}. Copy it from the machine that made the deposit.`);
+        }
+        return assert32(readFileSync(KEY_PATH));
+      }
+
+      export function keyId(key: Buffer): string {
+        return createHash('sha256').update(key).digest('hex').slice(0, 16);
+      }
+
+      export function sha256(buf: Buffer): string {
+        return createHash('sha256').update(buf).digest('hex');
+      }
+
+      export function encrypt(plaintext: Buffer, key: Buffer): EncryptedBlob {
+        const iv = randomBytes(12);
+        const cipher = createCipheriv(ALGO, key, iv);
+        const ciphertext = Buffer.concat([cipher.update(plaintext), cipher.final()]);
+        return {
+          iv: iv.toString('base64'),
+          authTag: cipher.getAuthTag().toString('base64'),
+          ciphertext,
+          keyId: keyId(key),
+        };
+      }
+
+      /** Decrypt — refuses on key mismatch (key_safety) before touching the cipher. */
+      export function decrypt(blob: EncryptedBlob, key: Buffer): Buffer {
+        const localId = keyId(key);
+        if (blob.keyId !== localId) {
+          throw new Error(
+            `Key mismatch: transcript encrypted with key ${blob.keyId}, local key is ${localId}. ` +
+            `Copy the matching ${KEY_PATH}.`,
+          );
+        }
+        const decipher = createDecipheriv(ALGO, key, Buffer.from(blob.iv, 'base64'));
+        decipher.setAuthTag(Buffer.from(blob.authTag, 'base64'));
+        return Buffer.concat([decipher.update(blob.ciphertext), decipher.final()]);
+      }
+    }
+
+    file "packages/core/src/continuity/transcript-store.ts" {
+      // TranscriptStore — gzip then encrypt, push ciphertext to a private bucket; reverse on resume.
+      // Serves: transcript_confidentiality, transcript_opt_in. Fidelity sha is over the ORIGINAL jsonl.
+      import { gzipSync, gunzipSync } from 'node:zlib';
+      import { readFileSync } from 'node:fs';
+      import { encrypt, decrypt, sha256 } from './crypto.js';
+      import type { EncryptedBlob } from './crypto.js';
+
+      /** Minimal storage contract — satisfied by Supabase Storage (bucket: context_transcripts). */
+      export interface StoragePort {
+        upload(path: string, bytes: Buffer): Promise<void>;
+        download(path: string): Promise<Buffer>;
+      }
+
+      export interface TranscriptBlobRef {
+        storagePath: string;     // e.g. transcripts/<session_id>.bin
+        iv: string;
+        authTag: string;
+        keyId: string;
+        originalSha256: string;  // sha of the raw .jsonl — proves byte-identical restore
+        originalBytes: number;
+        gzipBytes: number;
+      }
+
+      export async function packAndUpload(
+        sessionId: string,
+        jsonlPath: string,
+        key: Buffer,
+        storage: StoragePort,
+      ): Promise<TranscriptBlobRef> {
+        const original = readFileSync(jsonlPath);
+        const gz = gzipSync(original);
+        const blob: EncryptedBlob = encrypt(gz, key);
+        const storagePath = `transcripts/${sessionId}.bin`;
+        await storage.upload(storagePath, blob.ciphertext);
+        return {
+          storagePath,
+          iv: blob.iv,
+          authTag: blob.authTag,
+          keyId: blob.keyId,
+          originalSha256: sha256(original),
+          originalBytes: original.length,
+          gzipBytes: gz.length,
+        };
+      }
+
+      /** Returns the original .jsonl bytes, verified byte-identical (resume_fidelity). */
+      export async function downloadAndUnpack(
+        ref: TranscriptBlobRef,
+        key: Buffer,
+        storage: StoragePort,
+      ): Promise<Buffer> {
+        const ciphertext = await storage.download(ref.storagePath);
+        const gz = decrypt({ iv: ref.iv, authTag: ref.authTag, ciphertext, keyId: ref.keyId }, key);
+        const original = gunzipSync(gz);
+        const got = sha256(original);
+        if (got !== ref.originalSha256) {
+          throw new Error(`Transcript integrity failed: sha256 ${got} != expected ${ref.originalSha256}.`);
+        }
+        return original;
+      }
+    }
+
+    file "packages/core/src/continuity/session-ref.ts" {
+      // SessionStamp read-side + project-path encoding shared by hook, deposit, and resume.
+      import { existsSync, readFileSync } from 'node:fs';
+      import { homedir, hostname } from 'node:os';
+      import { join } from 'node:path';
+
+      export const CURRENT_SESSION_PATH = join(homedir(), '.relay', 'current-session.json');
+
+      export interface SessionRef {
+        session_id: string;
+        transcript_path: string;
+        cwd: string;
+        project_path_encoded: string;
+        host: string;
+      }
+
+      /**
+       * Claude Code derives the projects-dir folder from cwd by replacing every
+       * non-[A-Za-z0-9-] character with '-'. Existing dashes are preserved and runs of
+       * dashes are NOT collapsed — e.g. "C:\code\_src\app" becomes "C--code--src-app"
+       * (the "\_" yields "--"). Verified against the real ~/.claude/projects layout.
+       */
+      export function encodeProjectPath(cwd: string): string {
+        return cwd.replace(/[^A-Za-z0-9-]/g, '-');
+      }
+
+      export function claudeProjectsDir(): string {
+        return join(homedir(), '.claude', 'projects');
+      }
+
+      export function readCurrentSession(): SessionRef | null {
+        if (!existsSync(CURRENT_SESSION_PATH)) return null;
+        try { return JSON.parse(readFileSync(CURRENT_SESSION_PATH, 'utf8')) as SessionRef; }
+        catch { return null; }
+      }
+
+      export function thisHost(): string { return hostname(); }
+    }
+
+    file "hooks/session-start.mjs" {
+      // SessionStamp — wired to Claude Code's SessionStart hook. Reads the JSON payload on stdin
+      // (session_id, transcript_path, cwd) and stamps ~/.relay/current-session.json so the running
+      // shell — and the next deposit — knows its own resume id. Serves: capture_overhead.
+      import { mkdirSync, writeFileSync } from 'node:fs';
+      import { homedir, hostname } from 'node:os';
+      import { join, dirname } from 'node:path';
+
+      function encodeProjectPath(cwd) {
+        // Match Claude Code: every non-[A-Za-z0-9-] char -> '-', no collapsing.
+        return String(cwd || '').replace(/[^A-Za-z0-9-]/g, '-');
+      }
+
+      let raw = '';
+      process.stdin.setEncoding('utf8');
+      process.stdin.on('data', (c) => { raw += c; });
+      process.stdin.on('end', () => {
+        let p = {};
+        try { p = JSON.parse(raw || '{}'); } catch { /* tolerate empty */ }
+        const cwd = p.cwd || process.cwd();
+        const encoded = encodeProjectPath(cwd);
+        // SessionStart may omit transcript_path; it's deterministic, so derive it.
+        let transcriptPath = p.transcript_path || null;
+        if (!transcriptPath && p.session_id) {
+          transcriptPath = join(homedir(), '.claude', 'projects', encoded, p.session_id + '.jsonl');
+        }
+        const ref = {
+          session_id: p.session_id || null,
+          transcript_path: transcriptPath,
+          cwd,
+          project_path_encoded: encoded,
+          host: hostname(),
+        };
+        const out = join(homedir(), '.relay', 'current-session.json');
+        try {
+          mkdirSync(dirname(out), { recursive: true });
+          writeFileSync(out, JSON.stringify(ref, null, 2));
+        } catch { /* never block session start */ }
+        process.exit(0);
+      });
+    }
+
+    file "packages/core/src/continuity/index.ts" {
+      // Public surface for the continuity feature (re-exported from @relay/core root).
+      export {
+        KEY_PATH,
+        loadOrCreateKey,
+        loadKey,
+        keyId,
+        sha256,
+        encrypt,
+        decrypt,
+      } from './crypto.js';
+      export type { EncryptedBlob } from './crypto.js';
+      export {
+        packAndUpload,
+        downloadAndUnpack,
+      } from './transcript-store.js';
+      export type { StoragePort, TranscriptBlobRef } from './transcript-store.js';
+      export {
+        CURRENT_SESSION_PATH,
+        encodeProjectPath,
+        claudeProjectsDir,
+        readCurrentSession,
+        thisHost,
+      } from './session-ref.js';
+      export type { SessionRef } from './session-ref.js';
+    }
+
+    file "packages/core/test/continuity.test.mjs" {
+      // Guarantee tests (node:test, no deps). Run: node --test after building @relay/core.
+      import { test } from 'node:test';
+      import assert from 'node:assert/strict';
+      import { randomBytes } from 'node:crypto';
+      import { writeFileSync, mkdtempSync } from 'node:fs';
+      import { join } from 'node:path';
+      import { tmpdir } from 'node:os';
+      import {
+        encrypt, decrypt, keyId, packAndUpload, downloadAndUnpack, encodeProjectPath,
+      } from '../dist/continuity/index.js';
+      import { mkdirSync } from 'node:fs';
+      import { readFileSync } from 'node:fs';
+
+      // resume_fidelity: ciphertext decrypts back to identical bytes.
+      test('encrypt/decrypt round-trips to identical bytes', () => {
+        const key = randomBytes(32);
+        const pt = Buffer.from('the quick brown fox jumps \u{1F98A}'.repeat(200));
+        assert.deepEqual(decrypt(encrypt(pt, key), key), pt);
+      });
+
+      // transcript_confidentiality: the stored ciphertext must not contain the plaintext.
+      test('ciphertext does not leak plaintext', () => {
+        const key = randomBytes(32);
+        const pt = Buffer.from('SENTINEL_SECRET_VALUE_42');
+        const blob = encrypt(pt, key);
+        assert.equal(blob.ciphertext.includes(pt), false);
+      });
+
+      test('keyId is stable and key-specific', () => {
+        const k = randomBytes(32);
+        assert.equal(keyId(k), keyId(Buffer.from(k)));
+        assert.notEqual(keyId(k), keyId(randomBytes(32)));
+      });
+
+      // key_safety: wrong key is refused before any cipher work.
+      test('decrypt refuses on key mismatch', () => {
+        const blob = encrypt(Buffer.from('secret'), randomBytes(32));
+        assert.throws(() => decrypt(blob, randomBytes(32)), /Key mismatch/);
+      });
+
+      // GCM integrity: a flipped ciphertext byte fails the auth tag.
+      test('decrypt fails on tampered ciphertext', () => {
+        const key = randomBytes(32);
+        const blob = encrypt(Buffer.from('secret payload here'), key);
+        blob.ciphertext[0] ^= 0xff;
+        assert.throws(() => decrypt(blob, key));
+      });
+
+      // resume_fidelity end-to-end: gzip + encrypt + store + retrieve == original jsonl.
+      test('packAndUpload/downloadAndUnpack is byte-identical', async () => {
+        const dir = mkdtempSync(join(tmpdir(), 'relay-tx-'));
+        const jsonl = join(dir, 's.jsonl');
+        const original = Buffer.from(
+          Array.from({ length: 500 }, (_, i) => JSON.stringify({ i, t: 'message ' + i })).join('\n'),
+        );
+        writeFileSync(jsonl, original);
+        const mem = new Map();
+        const storage = {
+          upload: async (p, b) => { mem.set(p, Buffer.from(b)); },
+          download: async (p) => mem.get(p),
+        };
+        const key = randomBytes(32);
+        const ref = await packAndUpload('sess-123', jsonl, key, storage);
+        assert.equal(ref.originalBytes, original.length);
+        assert.ok(ref.gzipBytes > 0);
+        assert.deepEqual(await downloadAndUnpack(ref, key, storage), original);
+      });
+
+      // Encoding matches Claude Code's scheme exactly (verified vs ~/.claude/projects):
+      // every non-[A-Za-z0-9-] char -> '-', existing dashes kept, runs NOT collapsed.
+      test('encodeProjectPath matches Claude scheme (no dash-collapse)', () => {
+        assert.equal(encodeProjectPath('C:\\code'), 'C--code');
+        assert.equal(
+          encodeProjectPath('C:\\code\\_src\\app'),
+          'C--code--src-app',
+        );
+        assert.equal(
+          encodeProjectPath('C:\\code\\my-cool-app'),
+          'C--code-my-cool-app',
+        );
+      });
+
+      // Full resume write-path: unpack -> write to <projects>/<encoded>/<sessionId>.jsonl,
+      // byte-identical, at the path the encoding dictates.
+      test('resume write-path lands byte-identical at the encoded dir', async () => {
+        const dir = mkdtempSync(join(tmpdir(), 'relay-resume-'));
+        const srcJsonl = join(dir, 'src.jsonl');
+        const original = Buffer.from('{"role":"user"}\n{"role":"assistant"}\n'.repeat(50));
+        writeFileSync(srcJsonl, original);
+        const mem = new Map();
+        const storage = {
+          upload: async (p, b) => { mem.set(p, Buffer.from(b)); },
+          download: async (p) => mem.get(p),
+        };
+        const key = randomBytes(32);
+        const sessionId = 'f0e1d2c3-aaaa-bbbb-cccc-001122334455';
+        const ref = await packAndUpload(sessionId, srcJsonl, key, storage);
+
+        // Simulate resume materialization exactly as client.resume does.
+        const projectsRoot = join(dir, 'projects');
+        const encoded = encodeProjectPath('C:\\code\\_src\\app');
+        const projectDir = join(projectsRoot, encoded);
+        mkdirSync(projectDir, { recursive: true });
+        const jsonlPath = join(projectDir, sessionId + '.jsonl');
+        writeFileSync(jsonlPath, await downloadAndUnpack(ref, key, storage));
+
+        assert.equal(encoded, 'C--code--src-app');
+        assert.deepEqual(readFileSync(jsonlPath), original);
+      });
+
+      // Integrity guard: corrupted sha in the ref is caught on unpack.
+      test('downloadAndUnpack rejects sha mismatch', async () => {
+        const dir = mkdtempSync(join(tmpdir(), 'relay-tx-'));
+        const jsonl = join(dir, 's.jsonl');
+        writeFileSync(jsonl, Buffer.from('{"a":1}\n{"b":2}\n'));
+        const mem = new Map();
+        const storage = {
+          upload: async (p, b) => { mem.set(p, Buffer.from(b)); },
+          download: async (p) => mem.get(p),
+        };
+        const key = randomBytes(32);
+        const ref = await packAndUpload('s', jsonl, key, storage);
+        await assert.rejects(
+          downloadAndUnpack({ ...ref, originalSha256: 'deadbeef' }, key, storage),
+          /integrity/,
+        );
+      });
+    }
+
+    file "supabase/migrations/015_continuity.sql" {
+      -- Continuity: session resume metadata + encrypted transcript blob reference.
+      -- Serves: discoverable_resume, transcript_confidentiality (server stores ciphertext only).
+      -- NOTE: the table is context_packages, and it ALREADY has session_id (the Relay sess_ id).
+      -- The Claude Code *resume* id is distinct, so it gets its own column claude_session_id.
+
+      alter table context_packages add column if not exists claude_session_id text;
+      alter table context_packages add column if not exists cwd text;
+      alter table context_packages add column if not exists project_path_encoded text;
+      alter table context_packages add column if not exists host text;
+      -- Full blob descriptor (storage path, iv, authTag, keyId, sha, sizes). No plaintext, no key.
+      alter table context_packages add column if not exists transcript_blob jsonb;
+
+      create index if not exists idx_context_packages_claude_session_id
+        on context_packages (claude_session_id);
+
+      -- Private bucket for ciphertext. Create via dashboard or CLI if storage API differs by env:
+      insert into storage.buckets (id, name, public)
+        values ('context_transcripts', 'context_transcripts', false)
+        on conflict (id) do nothing;
+
+      -- RLS: transcript blobs are private to the service role (single-user Phase 1).
+      -- Mirrors the existing context-packages bucket policy.
+    }
+  }
+}

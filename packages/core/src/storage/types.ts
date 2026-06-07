@@ -37,6 +37,7 @@ import type {
   Deliverable,
   FactQuery,
 } from '../types.js';
+import type { TranscriptBlobRef } from '../continuity/transcript-store.js';
 
 /**
  * Row shape for a `context_packages` record. Matches the Postgres schema in
@@ -72,6 +73,14 @@ export interface PackageRow {
   topic: string | null;
   artifact_type: string | null;
   context_snapshot?: import('../types.js').ContextSnapshot | null;
+  // Continuity (015 migration). Optional so deposits typecheck and insert
+  // cleanly against a Supabase project that hasn't applied 015 yet — the
+  // builder only sets these when a current Claude session is present.
+  claude_session_id?: string | null;
+  cwd?: string | null;
+  project_path_encoded?: string | null;
+  host?: string | null;
+  transcript_blob?: TranscriptBlobRef | null;
   created_at: string;
 }
 
@@ -241,6 +250,14 @@ export interface ReadOnlyRelayStorage {
     limit?: number;
     sinceIso?: string;
   }): Promise<PackageRow[]>;
+  /**
+   * Look up the most recent package carrying a given Claude Code resume id
+   * (the `claude_session_id` column from migration 015). Optional and
+   * capability-gated: adapters predating 015 omit it, and `RelayClient.resume`
+   * falls back to treating the argument as a package id. Backed by the
+   * `idx_context_packages_claude_session_id` index.
+   */
+  getPackageByClaudeSession?(claudeSessionId: string): Promise<PackageRow | null>;
 
   // Facts
   queryFacts(q: FactQuery & { projectId: string }): Promise<RelayFact[]>;
@@ -331,6 +348,18 @@ export interface RelayStorage extends ReadOnlyRelayStorage {
    * `typeof storage.putBlob === 'function'` before calling.
    */
   putBlob?(key: string, body: Uint8Array, contentType?: string): Promise<void>;
+
+  /**
+   * Transcript-blob storage — symmetric put/get against a SEPARATE private
+   * bucket (`context_transcripts`) from the package zips. Optional and
+   * capability-gated like putBlob/getBlob: callers check
+   * `typeof storage.putTranscriptBlob === 'function'` before use, so a
+   * SQLite or read-only adapter that can't store transcripts is fine.
+   * Bodies are already gzipped + AES-256-GCM ciphertext — the bucket never
+   * sees plaintext (transcript_confidentiality).
+   */
+  putTranscriptBlob?(key: string, body: Uint8Array): Promise<void>;
+  getTranscriptBlob?(key: string): Promise<Uint8Array | null>;
 
   // Search (optional; capability-gated) ------------------------------------
   // Callers MUST branch on `capabilities.hybridSearch` / `semanticSearch`

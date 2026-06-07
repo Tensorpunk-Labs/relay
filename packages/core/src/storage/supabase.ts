@@ -58,11 +58,14 @@ export interface SupabaseStorageOptions {
   key: string;
   /** Storage bucket for blobs. Default: 'context-packages'. */
   bucket?: string;
+  /** Separate private bucket for encrypted transcripts. Default: 'context_transcripts'. */
+  transcriptBucket?: string;
 }
 
 export class SupabaseStorage implements RelayStorage {
   private supabase: SupabaseClient;
   private bucket: string;
+  private transcriptBucket: string;
 
   readonly capabilities: StorageCapabilities = Object.freeze({
     hybridSearch: true,
@@ -73,6 +76,7 @@ export class SupabaseStorage implements RelayStorage {
   constructor(opts: SupabaseStorageOptions) {
     this.supabase = createClient(opts.url, opts.key);
     this.bucket = opts.bucket ?? 'context-packages';
+    this.transcriptBucket = opts.transcriptBucket ?? 'context_transcripts';
   }
 
   /**
@@ -184,6 +188,18 @@ export class SupabaseStorage implements RelayStorage {
       .eq('id', id)
       .maybeSingle();
     if (error) throw new Error(`Failed to get package: ${error.message}`);
+    return (data as PackageRow | null) ?? null;
+  }
+
+  async getPackageByClaudeSession(claudeSessionId: string): Promise<PackageRow | null> {
+    const { data, error } = await this.supabase
+      .from('context_packages')
+      .select('*')
+      .eq('claude_session_id', claudeSessionId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (error) throw new Error(`Failed to look up session: ${error.message}`);
     return (data as PackageRow | null) ?? null;
   }
 
@@ -447,6 +463,26 @@ export class SupabaseStorage implements RelayStorage {
         upsert: false,
       });
     if (error) throw new Error(`Storage upload failed: ${error.message}`);
+  }
+
+  async putTranscriptBlob(key: string, body: Uint8Array): Promise<void> {
+    const { error } = await this.supabase.storage
+      .from(this.transcriptBucket)
+      .upload(key, body, { contentType: 'application/octet-stream', upsert: true });
+    if (error) throw new Error(`Transcript upload failed: ${error.message}`);
+  }
+
+  async getTranscriptBlob(key: string): Promise<Uint8Array | null> {
+    const { data, error } = await this.supabase.storage
+      .from(this.transcriptBucket)
+      .download(key);
+    if (error) {
+      const msg = error.message || '';
+      if (/not found|does not exist|NoSuchKey/i.test(msg)) return null;
+      throw new Error(`Transcript download failed: ${msg}`);
+    }
+    if (!data) return null;
+    return new Uint8Array(await data.arrayBuffer());
   }
 
   // -------------------------------------------------------------------------

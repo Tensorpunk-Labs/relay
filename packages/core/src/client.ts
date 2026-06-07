@@ -15,6 +15,9 @@ import type {
   GradientDay,
   RenderTier,
   OrientPackage,
+  ResumeOptions,
+  ResumeResult,
+  ResumableSession,
 } from './types.js';
 import { AlreadyInStateError, MetaProjectGuardError, StorageCapabilityError } from './types.js';
 import { buildManifest, buildContextPackage } from './context-package.js';
@@ -28,6 +31,20 @@ import { generateAndStoreEmbeddings, generateQueryEmbedding } from './embeddings
 import { computeSignificance } from './significance.js';
 import { inferTopic, inferArtifactType } from './inference.js';
 import { rerank } from './reranker.js';
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import {
+  readCurrentSession,
+  loadOrCreateKey,
+  loadKey,
+  KEY_PATH,
+  packAndUpload,
+  downloadAndUnpack,
+  claudeProjectsDir,
+  encodeProjectPath,
+  thisHost,
+  type StoragePort,
+  type TranscriptBlobRef,
+} from './continuity/index.js';
 import type { PackageRow, StorageCapabilities, RelayStorage } from './storage/types.js';
 import { SupabaseStorage } from './storage/supabase.js';
 import { openStorage } from './storage/factory.js';
@@ -42,6 +59,15 @@ interface RelayConfig {
   actor_type: 'agent' | 'human';
   openai_api_key?: string;
   project_paths?: Record<string, string[]>;
+  /**
+   * Continuity (session resume) feature gate. OFF by default. While off,
+   * deposits do NOT write the 015 continuity columns (claude_session_id, cwd,
+   * project_path_encoded, host, transcript_blob), so they keep inserting
+   * cleanly against a Supabase project that hasn't applied migration 015.
+   * Flip to true (`relay config set continuity true`) only AFTER the migration
+   * is applied. Can also be forced per-process with RELAY_CONTINUITY=1.
+   */
+  continuity?: boolean;
   /**
    * Storage URL. If present, overrides the default SupabaseStorage.
    * Supported schemes:
@@ -244,6 +270,7 @@ export class RelayClient {
     significance: number;
     topic: string | null;
     artifactType: string | null;
+    transcriptBlob?: TranscriptBlobRef | null;
   }): Omit<PackageRow, 'created_at'> {
     const m = args.manifest;
     // Forward-compatible insert: only set context_snapshot when present.
@@ -252,8 +279,22 @@ export class RelayClient {
     // cache rejects the unknown column. Omitting the field means routine
     // deposits keep working pre- and post-migration; snapshot-carrying
     // deposits only land after the column exists.
-    const row: Omit<PackageRow, 'created_at' | 'context_snapshot'> & {
+    const row: Omit<
+      PackageRow,
+      | 'created_at'
+      | 'context_snapshot'
+      | 'claude_session_id'
+      | 'cwd'
+      | 'project_path_encoded'
+      | 'host'
+      | 'transcript_blob'
+    > & {
       context_snapshot?: PackageRow['context_snapshot'];
+      claude_session_id?: PackageRow['claude_session_id'];
+      cwd?: PackageRow['cwd'];
+      project_path_encoded?: PackageRow['project_path_encoded'];
+      host?: PackageRow['host'];
+      transcript_blob?: PackageRow['transcript_blob'];
     } = {
       id: m.package_id,
       project_id: m.project_id,
@@ -282,7 +323,78 @@ export class RelayClient {
     if (m.context_snapshot) {
       row.context_snapshot = m.context_snapshot;
     }
+    // Tier 1: stamp the Claude Code resume id + locator onto every deposit when
+    // a current session is known. Gated by the `continuity` flag so deposits
+    // keep inserting against a pre-015 Supabase schema until the migration lands
+    // (an unknown column fails the whole insert — see PGRST204).
+    const sref = this.continuityEnabled() ? readCurrentSession() : null;
+    if (sref?.session_id) {
+      row.claude_session_id = sref.session_id;
+      row.cwd = sref.cwd;
+      row.project_path_encoded = sref.project_path_encoded;
+      row.host = sref.host;
+    }
+    if (args.transcriptBlob) {
+      row.transcript_blob = args.transcriptBlob;
+    }
     return row as Omit<PackageRow, 'created_at'>;
+  }
+
+  /**
+   * Tier 2 capture: gzip + encrypt the current session transcript and upload
+   * the ciphertext to the private transcript bucket. Best-effort — every
+   * failure path logs and returns null so a deposit never fails because the
+   * transcript couldn't be captured.
+   */
+  /**
+   * Whether the continuity feature is enabled (config flag or env override).
+   * `relay config set` stores values as strings, so accept "true" too.
+   */
+  private continuityEnabled(): boolean {
+    const v = this.config.continuity as unknown;
+    return v === true || v === 'true' || process.env.RELAY_CONTINUITY === '1';
+  }
+
+  private async captureTranscript(): Promise<TranscriptBlobRef | null> {
+    if (!this.continuityEnabled()) {
+      console.error(
+        '[Relay] --with-transcript: continuity is disabled. Apply migration 015, then `relay config set continuity true`.',
+      );
+      return null;
+    }
+    const sref = readCurrentSession();
+    if (!sref?.session_id || !sref.transcript_path) {
+      console.error('[Relay] --with-transcript: no current Claude session/transcript path; skipping.');
+      return null;
+    }
+    if (!existsSync(sref.transcript_path)) {
+      console.error(`[Relay] --with-transcript: transcript not found at ${sref.transcript_path}; skipping.`);
+      return null;
+    }
+    if (typeof this.storage.putTranscriptBlob !== 'function') {
+      console.error('[Relay] --with-transcript: storage adapter has no transcript bucket; skipping.');
+      return null;
+    }
+    const { key, created } = loadOrCreateKey();
+    if (created) {
+      console.error(`[Relay] generated a new transcript key at ${KEY_PATH}. Back it up to resume on other machines.`);
+    }
+    const port: StoragePort = {
+      upload: (p, b) => this.storage.putTranscriptBlob!(p, b),
+      download: async (p) => {
+        const r = await this.storage.getTranscriptBlob!(p);
+        if (!r) throw new Error(`transcript blob not found: ${p}`);
+        return Buffer.from(r);
+      },
+    };
+    try {
+      const ref = await packAndUpload(sref.session_id, sref.transcript_path, key, port);
+      console.error(`[Relay] transcript captured (encrypted) -> ${ref.storagePath} (${ref.originalBytes} bytes)`);
+      return ref;
+    } catch (e) {
+      console.error(`[Relay] --with-transcript: capture failed (${(e as Error).message}); deposit continues without it.`);
+      return null;
+    }
   }
 
   private skippedManifest(id: string, title: string): RelayManifest {
@@ -359,6 +471,9 @@ export class RelayClient {
     // Generate CONTEXT.md text for DB storage
     const contextMd = generateContextMd(manifest);
 
+    // Tier 2: opt-in transcript capture (best-effort; never blocks the deposit).
+    const transcriptBlob = opts.withTranscript ? await this.captureTranscript() : null;
+
     await this.storage.insertPackage({
       row: this.buildPackageInsertRow({
         manifest,
@@ -367,6 +482,7 @@ export class RelayClient {
         significance: computeSignificance(manifest, false),
         topic,
         artifactType,
+        transcriptBlob,
       }),
     });
 
@@ -1110,6 +1226,161 @@ export class RelayClient {
     // records a per-package blob_missing rather than crashing.
     if (typeof this.storage.getBlob !== 'function') return null;
     return this.storage.getBlob(key);
+  }
+
+  // --- Continuity: resume ---
+
+  /**
+   * Resolve a resume argument to its package row. Accepts a package id
+   * (`pkg_…`) or a Claude Code resume session id. Tries package-id lookup
+   * first, then the claude_session_id index.
+   */
+  private async resolveResumablePackage(idOrSession: string): Promise<PackageRow | null> {
+    if (idOrSession.startsWith('pkg_')) {
+      const byId = await this.storage.getPackage(idOrSession);
+      if (byId) return byId;
+    }
+    if (typeof this.storage.getPackageByClaudeSession === 'function') {
+      const bySession = await this.storage.getPackageByClaudeSession(idOrSession);
+      if (bySession) return bySession;
+    }
+    // Last resort: maybe it's a package id without the prefix convention.
+    return this.storage.getPackage(idOrSession);
+  }
+
+  /** Build a StoragePort over the configured transcript bucket. */
+  private transcriptPort(): StoragePort {
+    if (
+      typeof this.storage.getTranscriptBlob !== 'function' ||
+      typeof this.storage.putTranscriptBlob !== 'function'
+    ) {
+      throw new Error('Storage adapter has no transcript bucket; cannot move transcripts.');
+    }
+    return {
+      upload: (p, b) => this.storage.putTranscriptBlob!(p, b),
+      download: async (p) => {
+        const r = await this.storage.getTranscriptBlob!(p);
+        if (!r) throw new Error(`transcript blob not found: ${p}`);
+        return Buffer.from(r);
+      },
+    };
+  }
+
+  /**
+   * Resume a deposited Claude Code session. Downloads + decrypts the stored
+   * transcript, verifies it byte-identical, and (materialized mode) writes it
+   * back into the local Claude projects dir so `claude --resume <id>` works.
+   * Inline mode returns the transcript text for in-context use instead.
+   */
+  async resume(idOrSession: string, opts: ResumeOptions = {}): Promise<ResumeResult> {
+    const pkg = await this.resolveResumablePackage(idOrSession);
+    if (!pkg) throw new Error(`No deposit found for "${idOrSession}".`);
+
+    const sessionId = pkg.claude_session_id || null;
+    if (!sessionId) {
+      throw new Error(
+        `Deposit ${pkg.id} has no Claude session id (made before continuity, or not from a Claude shell).`,
+      );
+    }
+    const ref = pkg.transcript_blob;
+    if (!ref) {
+      throw new Error(
+        `Deposit ${pkg.id} carries no transcript (Tier-1 only). ` +
+          `Same-machine resume: claude --resume ${sessionId}`,
+      );
+    }
+
+    const key = loadKey(); // throws if the keyfile is absent — never invents one
+    const jsonl = await downloadAndUnpack(ref, key, this.transcriptPort());
+
+    const originHost = pkg.host ?? null;
+    const crossMachine = !!originHost && originHost !== thisHost();
+    const projectPathEncoded = pkg.project_path_encoded ?? null;
+
+    if (opts.inline) {
+      return {
+        mode: 'inline',
+        sessionId,
+        packageId: pkg.id,
+        projectPathEncoded,
+        originHost,
+        crossMachine,
+        transcript: jsonl.toString('utf8'),
+      };
+    }
+
+    const encoded = projectPathEncoded || encodeProjectPath(pkg.cwd || process.cwd());
+    const projectDir = opts.targetProjectDir || path.join(claudeProjectsDir(), encoded);
+    const jsonlPath = path.join(projectDir, `${sessionId}.jsonl`);
+    mkdirSync(projectDir, { recursive: true });
+    writeFileSync(jsonlPath, jsonl);
+
+    return {
+      mode: 'materialized',
+      sessionId,
+      packageId: pkg.id,
+      projectPathEncoded,
+      originHost,
+      crossMachine,
+      jsonlPath,
+      projectDir,
+      resumeCommand: `claude --resume ${sessionId}`,
+      bytes: jsonl.length,
+    };
+  }
+
+  private toResumable(pkg: PackageRow, similarity?: number): ResumableSession {
+    return {
+      sessionId: pkg.claude_session_id as string,
+      packageId: pkg.id,
+      title: pkg.title,
+      projectId: pkg.project_id,
+      originHost: pkg.host ?? null,
+      hasTranscript: !!pkg.transcript_blob,
+      createdAt: pkg.created_at,
+      similarity,
+      restoreCommand: `relay resume ${pkg.id}`,
+    };
+  }
+
+  /**
+   * Find resumable sessions by topic — "the shell that worked on Y". Runs a
+   * semantic search, then keeps hits whose package carries a Claude session id,
+   * each with a ready restore command.
+   */
+  async findResumableSessions(
+    query: string,
+    projectId?: string,
+    limit = 10,
+  ): Promise<ResumableSession[]> {
+    const hits = await this.search(query, projectId, Math.max(limit * 3, 25));
+    const seen = new Set<string>();
+    const out: ResumableSession[] = [];
+    for (const hit of hits) {
+      if (seen.has(hit.package_id)) continue;
+      seen.add(hit.package_id);
+      const pkg = await this.storage.getPackage(hit.package_id);
+      if (pkg?.claude_session_id) {
+        out.push(this.toResumable(pkg, hit.similarity));
+        if (out.length >= limit) break;
+      }
+    }
+    return out;
+  }
+
+  /** List recent resumable sessions for a project (most recent first). */
+  async listResumableSessions(projectId: string, limit = 20): Promise<ResumableSession[]> {
+    const pkgs = await this.storage.listPackages({ projectId, limit: Math.max(limit * 2, 40) });
+    const seen = new Set<string>();
+    const out: ResumableSession[] = [];
+    for (const pkg of pkgs) {
+      const sid = pkg.claude_session_id;
+      if (!sid || seen.has(sid)) continue;
+      seen.add(sid);
+      out.push(this.toResumable(pkg));
+      if (out.length >= limit) break;
+    }
+    return out;
   }
 }
 

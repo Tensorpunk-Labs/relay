@@ -220,6 +220,13 @@ export interface DepositOptions {
    * hook auto-deposits do not (pending fork-B pre-stop capture work).
    */
   contextSnapshot?: ContextSnapshot;
+  /**
+   * Opt-in (Tier 2): also capture the current Claude Code session transcript,
+   * gzip + AES-256-GCM encrypt it with the local keyfile, and upload the
+   * ciphertext to the private transcript bucket so the session can be resumed
+   * later — on this machine or another. Off by default; transcript_opt_in.
+   */
+  withTranscript?: boolean;
 }
 
 export interface AutoDepositOptions {
@@ -238,6 +245,53 @@ export interface SearchResult {
 export interface SearchOptions {
   topic?: string;
   artifactType?: string;
+}
+
+export interface ResumeOptions {
+  /**
+   * Inline mode: return the decrypted transcript text instead of writing a
+   * .jsonl to the Claude projects dir. The caller (agent) folds it into the
+   * current context rather than launching a fresh `claude --resume`.
+   */
+  inline?: boolean;
+  /**
+   * Override where the materialized .jsonl is written. Defaults to the
+   * ORIGIN machine's `~/.claude/projects/<project_path_encoded>/` so resume
+   * is faithful on the same machine. Cross-machine callers may pass the
+   * current cwd's encoded dir so `claude --resume` discovers it locally.
+   */
+  targetProjectDir?: string;
+}
+
+export interface ResumeResult {
+  mode: 'materialized' | 'inline';
+  sessionId: string;
+  packageId: string;
+  projectPathEncoded: string | null;
+  originHost: string | null;
+  /** True when the deposit came from a different machine than this one. */
+  crossMachine: boolean;
+  /** materialized mode */
+  jsonlPath?: string;
+  projectDir?: string;
+  resumeCommand?: string;
+  bytes?: number;
+  /** inline mode */
+  transcript?: string;
+}
+
+export interface ResumableSession {
+  sessionId: string;
+  packageId: string;
+  title: string;
+  projectId: string;
+  originHost: string | null;
+  hasTranscript: boolean;
+  createdAt: string;
+  /** Present when produced by a semantic search. */
+  similarity?: number;
+  /** Ready-to-run restoration command. */
+  restoreCommand: string;
 }
 
 /**
