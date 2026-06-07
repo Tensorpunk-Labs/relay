@@ -122,7 +122,7 @@ If you use an MCP-capable agent (Claude Code, etc.), register the Relay MCP serv
 }
 ```
 
-The MCP server exposes `relay_session_start`, `relay_pull_context`, `relay_deposit`, `relay_status`, and `relay_orchestrate` as tools.
+The MCP server exposes `relay_session_start`, `relay_pull_context`, `relay_deposit`, `relay_status`, `relay_orchestrate`, and `relay_resume` as tools.
 
 ## Project Structure
 
@@ -187,6 +187,22 @@ Or via the `relay_deposit` MCP tool's top-level `context_snapshot` parameter. Th
 The hook appends each file the agent touches to `.relay/context-log.jsonl` in the current working directory. When the existing stop-hook auto-deposit fires, the CLI reads the log, synthesizes a snapshot (de-duped, categorized, ranked), attaches it to the package, and truncates the log so the next session starts clean. The handler is defensive — it never throws and never blocks the tool loop.
 
 See [relaymemory.com/context-snapshot](https://relaymemory.com/context-snapshot) for the full design.
+
+### Session Continuity — resume any session, anywhere
+
+Every deposit records the **resume id** of the Claude Code session that made it. Opt into `relay deposit --with-transcript` and Relay also captures an **AES-256-GCM encrypted, gzipped copy of the full conversation transcript**, stored in a private bucket — the server never sees plaintext, and the key (`~/.relay/transcript.key`) never leaves your machine.
+
+Later, from any session:
+
+```bash
+relay sessions find "the auth refactor"   # locate the session that did the work
+relay resume <id>                          # rebuild its transcript locally; prints `claude --resume <id>`
+relay resume <id> --inline                 # or fold the prior conversation into the current session
+```
+
+The `relay_resume` MCP tool does the same conversationally — "find the session we used for X and give me the restore command." Resume reconstructs the conversation faithfully; carry your keyfile to resume on another machine (`--here` writes the transcript where that machine's `claude --resume` will find it). One honest caveat: absolute paths and tool references from the origin machine may not resolve elsewhere.
+
+Continuity is **off by default** — enable with `relay config set continuity true`.
 
 ### Search the deposit history
 
