@@ -18,6 +18,8 @@ Relay is the context layer for this project. Every session should orient against
 
 **Deposit shape.** Pass `decisions`, `open_questions`, `handoff_note` as **top-level JSON args**, never as XML tags inside `description`. Prefix the title with `[KEY]` (significance 9+) or `[SIG]` (6-8). Skip trivial code changes — the stop hook auto-captures git state.
 
+**Session continuity.** Every deposit records this session's Claude Code resume id automatically. To make a session fully resumable later, `relay deposit --with-transcript` also stores an AES-256-GCM encrypted transcript (off by default; `--skip-transcript` opts a single deposit out). If the operator has set `continuity_transcript` to `manual` or `always`, a plain `relay deposit` already captures it. Resume with `relay resume <id>`, find a past session by topic with `relay sessions find "<topic>"`, or use the `relay_resume` MCP tool ("find the session we used for X and give me the restore command").
+
 **When to deposit:**
 - A major decision, strategy shift, or approach change
 - A milestone shipped

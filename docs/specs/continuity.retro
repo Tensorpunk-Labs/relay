@@ -215,6 +215,9 @@ system RelayContinuity {
     //                                     from ~/.relay/current-session.json; optional transcript pack.
     //                                     GATED by config `continuity` (default off) so deposits keep
     //                                     inserting against a pre-015 schema until the migration lands.
+    //                                     Transcript capture default = config `continuity_transcript`
+    //                                     (off|manual|always); manual = intentional deposits only,
+    //                                     not the stop-hook auto-deposit. --with/--skip-transcript override.
     //   packages/mcp/src/index.ts       — register `relay_resume` tool (search -> restore command).
     //   hooks (settings)                — wire hooks/session-start.mjs to SessionStart event.
     //   apps/web                        — RestorableBadge on packages whose row has a transcript blob.

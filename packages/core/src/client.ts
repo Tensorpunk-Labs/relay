@@ -69,6 +69,16 @@ interface RelayConfig {
    */
   continuity?: boolean;
   /**
+   * When to auto-capture the encrypted transcript (only effective when
+   * `continuity` is on). Stored as a string by `relay config set`:
+   *   - 'off'    — id/metadata only (default). Transcript only with --with-transcript.
+   *   - 'manual' — capture on intentional `relay deposit`, but NOT on the every-exit
+   *                stop-hook auto-deposit (keeps session exits fast).
+   *   - 'always' — capture on every deposit including auto-deposits.
+   * Per-deposit `--with-transcript` / `--skip-transcript` always override.
+   */
+  continuity_transcript?: 'off' | 'manual' | 'always';
+  /**
    * Storage URL. If present, overrides the default SupabaseStorage.
    * Supported schemes:
    *   - `sqlite:///<path>` — local SQLite file via @relay/storage-sqlite.
@@ -355,6 +365,29 @@ export class RelayClient {
     return v === true || v === 'true' || process.env.RELAY_CONTINUITY === '1';
   }
 
+  /** Transcript-capture default mode (off | manual | always). */
+  private transcriptMode(): 'off' | 'manual' | 'always' {
+    const m = (process.env.RELAY_TRANSCRIPT_MODE || this.config.continuity_transcript || 'off')
+      .toString()
+      .toLowerCase();
+    return m === 'manual' || m === 'always' ? m : 'off';
+  }
+
+  /**
+   * Resolve whether THIS deposit should capture the transcript. Explicit
+   * `withTranscript` (true/false) wins; otherwise the config mode decides —
+   * 'always' for any deposit, 'manual' for non-auto (intentional) deposits only.
+   */
+  private wantsTranscript(explicit: boolean | undefined, isAuto: boolean): boolean {
+    if (!this.continuityEnabled()) return false;
+    if (explicit === true) return true;
+    if (explicit === false) return false;
+    const mode = this.transcriptMode();
+    if (mode === 'always') return true;
+    if (mode === 'manual') return !isAuto;
+    return false;
+  }
+
   private async captureTranscript(): Promise<TranscriptBlobRef | null> {
     if (!this.continuityEnabled()) {
       console.error(
@@ -471,8 +504,11 @@ export class RelayClient {
     // Generate CONTEXT.md text for DB storage
     const contextMd = generateContextMd(manifest);
 
-    // Tier 2: opt-in transcript capture (best-effort; never blocks the deposit).
-    const transcriptBlob = opts.withTranscript ? await this.captureTranscript() : null;
+    // Tier 2: transcript capture — explicit flag or config mode (manual/always).
+    // Best-effort; never blocks the deposit.
+    const transcriptBlob = this.wantsTranscript(opts.withTranscript, false)
+      ? await this.captureTranscript()
+      : null;
 
     await this.storage.insertPackage({
       row: this.buildPackageInsertRow({
@@ -622,6 +658,12 @@ export class RelayClient {
     // Generate CONTEXT.md text for DB
     const contextMd = generateContextMd(manifest, gitDiff);
 
+    // Auto-deposits capture the transcript only in 'always' mode (isAuto=true),
+    // so the every-exit stop hook stays fast under the default/'manual' modes.
+    const transcriptBlob = this.wantsTranscript(undefined, true)
+      ? await this.captureTranscript()
+      : null;
+
     await this.storage.insertPackage({
       row: this.buildPackageInsertRow({
         manifest,
@@ -630,6 +672,7 @@ export class RelayClient {
         significance: computeSignificance(manifest, true),
         topic,
         artifactType,
+        transcriptBlob,
       }),
     });
 

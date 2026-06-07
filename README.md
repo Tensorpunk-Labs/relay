@@ -202,7 +202,7 @@ relay resume <id> --inline                 # or fold the prior conversation into
 
 The `relay_resume` MCP tool does the same conversationally — "find the session we used for X and give me the restore command." Resume reconstructs the conversation faithfully; carry your keyfile to resume on another machine (`--here` writes the transcript where that machine's `claude --resume` will find it). One honest caveat: absolute paths and tool references from the origin machine may not resolve elsewhere.
 
-Continuity is **off by default** — enable with `relay config set continuity true`.
+Continuity is **off by default** — enable with `relay config set continuity true`. Transcript-capture default is set with `continuity_transcript`: `off` (id only), `manual` (a plain `relay deposit` captures it, but the every-exit auto-deposit stays id-only so session exits stay fast), or `always`. Per-deposit `--with-transcript` / `--skip-transcript` override. Transcripts run a few MB each, so `manual` is the recommended balance.
 
 ### Search the deposit history
 
