@@ -11,12 +11,20 @@ import SearchPanel from '@/components/SearchPanel';
 
 const CoreShader = dynamic(() => import('@/components/CoreShader'), { ssr: false });
 const BrainCore = dynamic(() => import('@/components/BrainCore'), { ssr: false });
+const RelayFlow = dynamic(() => import('@/components/RelayFlow'), { ssr: false });
 const OrbitalLogo = dynamic(() => import('@/components/OrbitalLogo'), { ssr: false });
+
+type VizMode = 'cortex' | 'flow';
 
 export default function Home() {
   const [expandProjectId, setExpandProjectId] = useState<string | null>(null);
   const [windowDays, setWindowDays, windowLoading] = useMetaControl('orient', 'window_days', 14);
   const [includeArchived, setIncludeArchived] = useState<boolean>(false);
+  // ALL-time override for the viz + cards. Local UI state on purpose — the
+  // persisted meta:orient window_days fact keeps backend meaning (CLI orient)
+  // and shouldn't be clobbered by a "show me everything" glance.
+  const [showAll, setShowAll] = useState<boolean>(false);
+  const [vizMode, setVizMode] = useState<VizMode>('cortex');
 
   const handleClickProject = useCallback((id: string) => {
     setExpandProjectId(null);
@@ -55,21 +63,47 @@ export default function Home() {
         <section className="rs-liquid-glass" style={{ padding: '14px 18px' }}>
           <div className="flex items-center justify-between">
             <span className="rs-zone-label">
-              <span className="rs-zone-icon">◇</span>
-              CONTEXT CORTEX
+              <span className="rs-zone-icon">{vizMode === 'cortex' ? '◇' : '⊚'}</span>
+              {vizMode === 'cortex' ? 'CONTEXT CORTEX' : 'RELAY FLOW'}
             </span>
-            <span className="rs-text-mono text-[8px] tracking-[1.6px] uppercase rs-text-dim">
-              3D PROJECT GRAPH · CLICK TO DRILL
-            </span>
+            <div className="flex items-center gap-3">
+              <span className="rs-text-mono text-[8px] tracking-[1.6px] uppercase rs-text-dim">
+                {vizMode === 'cortex'
+                  ? '3D PROJECT GRAPH · CLICK TO DRILL'
+                  : 'STATIONS RELAY CONTEXT TO CORE · TAIL = DEPOSIT HISTORY'}
+              </span>
+              <div className="flex gap-1">
+                {(['cortex', 'flow'] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => setVizMode(mode)}
+                    className={`rs-pill ${vizMode === mode ? 'rs-pill-cyan' : ''}`}
+                    style={{
+                      cursor: 'pointer',
+                      border: '1px solid',
+                      borderColor: vizMode === mode ? 'rgba(0,221,255,0.35)' : 'var(--rs-separator)',
+                    }}
+                    aria-pressed={vizMode === mode}
+                  >
+                    {mode === 'cortex' ? 'CORTEX' : 'FLOW'}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
           <div className="rs-label-separator" />
           <div className="relative w-full" style={{ height: 540 }}>
-            <BrainCore onClickProject={handleClickProject} windowDays={windowDays} onWindowChange={setWindowDays} includeArchived={includeArchived} />
+            {vizMode === 'cortex' ? (
+              <BrainCore onClickProject={handleClickProject} windowDays={windowDays} onWindowChange={setWindowDays} includeArchived={includeArchived} showAll={showAll} />
+            ) : (
+              <RelayFlow onClickProject={handleClickProject} windowDays={windowDays} includeArchived={includeArchived} showAll={showAll} />
+            )}
           </div>
         </section>
 
         {/* Meta Controls */}
-        <MetaControls windowDays={windowDays} onWindowChange={setWindowDays} />
+        <MetaControls windowDays={windowDays} onWindowChange={setWindowDays} showAll={showAll} onShowAllChange={setShowAll} />
 
         {/* Stats */}
         <section>
@@ -126,7 +160,7 @@ export default function Home() {
             </button>
           </div>
           <div className="rs-label-separator" />
-          <ProjectCards expandProjectId={expandProjectId} includeArchived={includeArchived} />
+          <ProjectCards expandProjectId={expandProjectId} includeArchived={includeArchived} windowDays={windowDays} showAll={showAll} />
         </section>
 
         {/* Timeline */}

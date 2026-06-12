@@ -164,6 +164,17 @@ export default function Timeline() {
                         <span className="rs-pill">{pkg.artifact_type}</span>
                       </>
                     )}
+                    {pkg.transcript_blob && (
+                      <>
+                        <span className="rs-text-faint">·</span>
+                        <span
+                          className="rs-pill rs-pill-emerald"
+                          title={`Session transcript stored — restore with \`relay resume ${pkg.id}\``}
+                        >
+                          ↻ Continuity restorable
+                        </span>
+                      </>
+                    )}
                     <span className="rs-text-faint">·</span>
                     <span className={statusPill[pkg.status] || 'rs-pill rs-pill-dim'}>
                       {pkg.status}

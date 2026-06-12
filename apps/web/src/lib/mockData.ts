@@ -68,6 +68,8 @@ interface PkgSpec {
   decisions?: string[];
   questions?: string[];
   tags?: string[];
+  /** When set, the deposit carries a stored (encrypted) session transcript → "Continuity restorable". */
+  transcript_blob?: { storagePath: string; originalBytes?: number } | null;
   created_at: string;
 }
 
@@ -93,6 +95,7 @@ const PKGS: PkgSpec[] = [
     ],
     questions: ['Confirm Europa has capacity to receive all 180 hull plates in single delivery, or stage across two?'],
     tags: ['logistics', 'priority'],
+    transcript_blob: { storagePath: 'transcripts/sess-oort-4418.bin', originalBytes: 184320 },
     created_at: minutesAgo(22),
   },
   {
@@ -320,6 +323,7 @@ const PKGS: PkgSpec[] = [
       'Is our insurance coverage adequate given the revised mission value?',
     ],
     tags: ['geology', 'priority'],
+    transcript_blob: { storagePath: 'transcripts/sess-kepler-442b.bin', originalBytes: 297984 },
     created_at: minutesAgo(47),
   },
   {
@@ -798,6 +802,8 @@ export const MOCK_PACKAGES: PackageRow[] = PKGS.map((p) => ({
   significance: p.significance ?? 5,
   topic: p.topic ?? null,
   artifact_type: p.artifact_type ?? null,
+  claude_session_id: p.transcript_blob ? `cc-${p.id}` : null,
+  transcript_blob: p.transcript_blob ?? null,
   created_at: p.created_at,
 }));
 

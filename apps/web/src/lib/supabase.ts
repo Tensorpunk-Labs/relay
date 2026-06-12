@@ -31,6 +31,12 @@ export interface PackageRow {
   topic: string | null;
   artifact_type: string | null;
   context_snapshot?: ContextSnapshotRow | null;
+  // Continuity (migration 015): the Claude Code resume id + locator, and the
+  // encrypted-transcript descriptor. Presence of transcript_blob means the
+  // session is restorable via `relay resume`.
+  claude_session_id?: string | null;
+  host?: string | null;
+  transcript_blob?: { storagePath: string; originalBytes?: number } | null;
   created_at: string;
 }
 

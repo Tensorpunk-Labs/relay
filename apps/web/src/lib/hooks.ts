@@ -105,36 +105,95 @@ export function useProjects(opts: { includeArchived?: boolean } = {}) {
   return { projects, loading };
 }
 
-export function usePackages(projectId?: string) {
+export interface UsePackagesOptions {
+  projectId?: string;
+  /** Only packages newer than N days. Ignored when `all` is set. */
+  windowDays?: number;
+  /** Fetch the entire history (paged) instead of the newest 100. */
+  all?: boolean;
+}
+
+// Every column the dashboard renders. `context_md` is deliberately excluded —
+// it can be hundreds of KB per row and nothing in the UI displays it, so
+// pulling it made full-history fetches needlessly heavy.
+const PACKAGE_COLUMNS =
+  'id,project_id,title,description,status,package_type,review_type,parent_package_id,' +
+  'created_by_type,created_by_id,session_id,tags,open_questions,decisions_made,' +
+  'handoff_note,deliverables,significance,topic,artifact_type,context_snapshot,' +
+  'claude_session_id,host,transcript_blob,created_at';
+
+// PostgREST hard-caps responses at 1000 rows, so history fetches page through
+// .range() windows. MAX_PAGES bounds a runaway table — bump it when the corpus
+// outgrows 5000 packages.
+const PAGE_SIZE = 1000;
+const MAX_PAGES = 5;
+
+export function usePackages(opts?: string | UsePackagesOptions) {
+  const { projectId, windowDays, all } =
+    typeof opts === 'string' ? { projectId: opts, windowDays: undefined, all: undefined } : (opts ?? {});
   const [packages, setPackages] = useState<PackageRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const cutoffMs = !all && windowDays ? Date.now() - windowDays * 24 * 60 * 60 * 1000 : null;
+
     if (USE_MOCK) {
       const filter = (list: PackageRow[]) =>
-        projectId ? list.filter((p) => p.project_id === projectId) : list;
+        list.filter(
+          (p) =>
+            (!projectId || p.project_id === projectId) &&
+            (cutoffMs === null || new Date(p.created_at).getTime() >= cutoffMs),
+        );
       setPackages(filter(mockPackages));
       setLoading(false);
-      const unsubscribe = subscribeMock((all) => {
-        setPackages(filter(all));
+      const unsubscribe = subscribeMock((allPkgs) => {
+        setPackages(filter(allPkgs));
       });
       return unsubscribe;
     }
 
-    let query = supabase
-      .from('context_packages')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(100);
+    let cancelled = false;
 
-    if (projectId) {
-      query = query.eq('project_id', projectId);
-    }
+    const fetchPackages = async () => {
+      // Legacy shape — newest 100, used by the live Timeline.
+      if (!all && cutoffMs === null) {
+        let query = supabase
+          .from('context_packages')
+          .select(PACKAGE_COLUMNS)
+          .order('created_at', { ascending: false })
+          .limit(100);
+        if (projectId) query = query.eq('project_id', projectId);
+        const { data } = await query;
+        if (cancelled) return;
+        setPackages((data as unknown as PackageRow[]) || []);
+        setLoading(false);
+        return;
+      }
 
-    query.then(({ data }) => {
-      setPackages(data || []);
+      // Windowed or full-history — page until a short page comes back.
+      const rows: PackageRow[] = [];
+      for (let page = 0; page < MAX_PAGES; page++) {
+        let query = supabase
+          .from('context_packages')
+          .select(PACKAGE_COLUMNS)
+          .order('created_at', { ascending: false })
+          .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+        if (projectId) query = query.eq('project_id', projectId);
+        if (cutoffMs !== null) query = query.gte('created_at', new Date(cutoffMs).toISOString());
+        const { data } = await query;
+        if (cancelled) return;
+        const batch = (data as unknown as PackageRow[]) || [];
+        rows.push(...batch);
+        if (batch.length < PAGE_SIZE) break;
+      }
+      setPackages(rows);
       setLoading(false);
-    });
+    };
+
+    // Debounce so dragging the orient-window slider doesn't fire a query per
+    // tick — only the value it settles on hits Supabase.
+    const debounce = windowDays !== undefined ? 250 : 0;
+    const timer = setTimeout(fetchPackages, debounce);
 
     const channelName = `packages-${projectId || 'all'}-${Date.now()}`;
     const channel = supabase
@@ -154,11 +213,75 @@ export function usePackages(projectId?: string) {
       .subscribe();
 
     return () => {
+      cancelled = true;
+      clearTimeout(timer);
       supabase.removeChannel(channel);
     };
-  }, [projectId]);
+  }, [projectId, windowDays, all]);
 
   return { packages, loading };
+}
+
+/**
+ * True package count per project, independent of any recency window or the
+ * newest-100 cap. Fetches only `project_id` (paged) and aggregates client-side
+ * — the instance has PostgREST aggregates disabled, and ~30 bytes/row keeps
+ * this cheap even at thousands of packages.
+ */
+export function usePackageCounts() {
+  const [counts, setCounts] = useState<Map<string, number>>(new Map());
+
+  useEffect(() => {
+    if (USE_MOCK) {
+      const compute = (list: PackageRow[]) => {
+        const m = new Map<string, number>();
+        for (const p of list) m.set(p.project_id, (m.get(p.project_id) || 0) + 1);
+        setCounts(m);
+      };
+      compute(mockPackages);
+      return subscribeMock(compute);
+    }
+
+    let cancelled = false;
+
+    (async () => {
+      const m = new Map<string, number>();
+      for (let page = 0; page < MAX_PAGES * 2; page++) {
+        const { data } = await supabase
+          .from('context_packages')
+          .select('project_id')
+          .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+        if (cancelled) return;
+        const batch = (data as { project_id: string }[] | null) || [];
+        for (const row of batch) m.set(row.project_id, (m.get(row.project_id) || 0) + 1);
+        if (batch.length < PAGE_SIZE) break;
+      }
+      if (!cancelled) setCounts(m);
+    })();
+
+    const channel = supabase
+      .channel(`package-counts-${Date.now()}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'context_packages' },
+        (payload) => {
+          const pid = (payload.new as { project_id: string }).project_id;
+          setCounts((prev) => {
+            const m = new Map(prev);
+            m.set(pid, (m.get(pid) || 0) + 1);
+            return m;
+          });
+        },
+      )
+      .subscribe();
+
+    return () => {
+      cancelled = true;
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  return counts;
 }
 
 export function useSessions(projectId?: string) {

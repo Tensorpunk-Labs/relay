@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { useProjects, usePackages, useSessions } from '@/lib/hooks';
+import { useProjects, usePackages, usePackageCounts, useSessions } from '@/lib/hooks';
 import type { PackageRow } from '@/lib/supabase';
 
 const statusPill: Record<string, string> = {
@@ -282,40 +282,38 @@ function PackageDetail({ pkg, callsign, onClose }: { pkg: PackageRow; callsign: 
   );
 }
 
-function ProjectCard({
+/**
+ * Expanded drill-down — fetches the project's FULL package history on mount,
+ * independent of the dashboard-wide recency window. This is what fixes the
+ * "0 pkgs on old projects" lie: the global pool only carries windowed
+ * packages, but opening a card always shows everything.
+ */
+function ExpandedProjectCard({
   project,
-  packages,
   callsignBySession,
-  forceExpand,
+  onCollapse,
 }: {
   project: { id: string; name: string; description: string | null; archived_at?: string | null };
-  packages: PackageRow[];
   callsignBySession: Map<string, string>;
-  forceExpand?: boolean;
+  onCollapse: () => void;
 }) {
   const isArchived = Boolean(project.archived_at);
-  const [expanded, setExpanded] = useState(false);
   const [selectedPkg, setSelectedPkg] = useState<PackageRow | null>(null);
-
-  useEffect(() => {
-    if (forceExpand) setExpanded(true);
-  }, [forceExpand]);
+  const { packages, loading } = usePackages({ projectId: project.id, all: true });
 
   const statusCounts: Record<string, number> = {};
   for (const p of packages) {
     statusCounts[p.status] = (statusCounts[p.status] || 0) + 1;
   }
 
-  // Expanded: image-stack + liquid glass over obsidian
-  if (expanded) {
-    return (
-      <div
-        id={`project-${project.id}`}
-        className="rs-image-stack col-span-full"
-        data-bg="obsidian"
-        style={{ minHeight: 280, opacity: isArchived ? 0.5 : 1 }}
-        onClick={(e) => e.stopPropagation()}
-      >
+  return (
+    <div
+      id={`project-${project.id}`}
+      className="rs-image-stack col-span-full"
+      data-bg="obsidian"
+      style={{ minHeight: 280, opacity: isArchived ? 0.5 : 1 }}
+      onClick={(e) => e.stopPropagation()}
+    >
         <div className="rs-liquid-glass" style={{ flex: 1 }}>
           <div className="flex items-center justify-between mb-2 gap-3">
             <div className="flex items-center gap-3 min-w-0">
@@ -333,8 +331,7 @@ function ProjectCard({
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                setExpanded(false);
-                setSelectedPkg(null);
+                onCollapse();
               }}
               className="rs-btn-raised"
             >
@@ -342,6 +339,10 @@ function ProjectCard({
             </button>
           </div>
           <div className="rs-label-separator" />
+
+          {loading && (
+            <div className="rs-text-mono text-[10px] rs-text-dim py-3">LOADING FULL HISTORY...</div>
+          )}
 
           {project.description && (
             <p className="rs-text-mono text-[10px] text-white/55 mb-3">{project.description}</p>
@@ -438,6 +439,15 @@ function ProjectCard({
                       C
                     </span>
                   )}
+                  {pkg.transcript_blob && (
+                    <span
+                      className="rs-text-mono text-[9px]"
+                      style={{ color: 'var(--rs-accent-emerald)' }}
+                      title={`Continuity restorable — relay resume ${pkg.id}`}
+                    >
+                      ↻
+                    </span>
+                  )}
                   <span className="rs-text-mono text-[9px] rs-text-faint tabular-nums">
                     {timeAgo(pkg.created_at)}
                   </span>
@@ -446,8 +456,45 @@ function ProjectCard({
             })}
           </div>
         </div>
-      </div>
+    </div>
+  );
+}
+
+function ProjectCard({
+  project,
+  packages,
+  totalCount,
+  callsignBySession,
+  forceExpand,
+}: {
+  project: { id: string; name: string; description: string | null; archived_at?: string | null };
+  /** Packages within the dashboard's current window — preview only. */
+  packages: PackageRow[];
+  /** True all-time package count, independent of any window. */
+  totalCount: number;
+  callsignBySession: Map<string, string>;
+  forceExpand?: boolean;
+}) {
+  const isArchived = Boolean(project.archived_at);
+  const [expanded, setExpanded] = useState(false);
+
+  useEffect(() => {
+    if (forceExpand) setExpanded(true);
+  }, [forceExpand]);
+
+  if (expanded) {
+    return (
+      <ExpandedProjectCard
+        project={project}
+        callsignBySession={callsignBySession}
+        onCollapse={() => setExpanded(false)}
+      />
     );
+  }
+
+  const statusCounts: Record<string, number> = {};
+  for (const p of packages) {
+    statusCounts[p.status] = (statusCounts[p.status] || 0) + 1;
   }
 
   // Collapsed: rs-panel-raised
@@ -486,7 +533,12 @@ function ProjectCard({
       )}
 
       <div className="flex gap-1.5 mb-3 flex-wrap items-center">
-        <span className="rs-pill rs-pill-cyan">{packages.length} PKG</span>
+        <span className="rs-pill rs-pill-cyan">{totalCount} PKG</span>
+        {packages.length > 0 && packages.length < totalCount && (
+          <span className="rs-pill rs-pill-dim" title="Packages within the current orient window">
+            {packages.length} IN WINDOW
+          </span>
+        )}
         {Object.entries(statusCounts)
           .slice(0, 3)
           .map(([status, count]) => (
@@ -496,7 +548,7 @@ function ProjectCard({
           ))}
       </div>
 
-      {packages.length > 0 && (
+      {packages.length > 0 ? (
         <div className="space-y-1 mt-auto pt-3" style={{ borderTop: '1px solid var(--rs-separator)' }}>
           {packages.slice(0, 3).map((pkg) => (
             <div key={pkg.id} className="flex items-center gap-2">
@@ -509,13 +561,19 @@ function ProjectCard({
               </span>
             </div>
           ))}
-          {packages.length > 3 && (
+          {totalCount > 3 && (
             <div className="rs-text-mono text-[9px] rs-text-faint pl-4">
-              +{packages.length - 3} more
+              +{totalCount - 3} more
             </div>
           )}
         </div>
-      )}
+      ) : totalCount > 0 ? (
+        <div className="mt-auto pt-3" style={{ borderTop: '1px solid var(--rs-separator)' }}>
+          <span className="rs-text-mono text-[9px] rs-text-faint">
+            NO ACTIVITY IN WINDOW · CLICK FOR FULL HISTORY
+          </span>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -523,9 +581,19 @@ function ProjectCard({
 export default function ProjectCards({
   expandProjectId,
   includeArchived = false,
-}: { expandProjectId?: string | null; includeArchived?: boolean } = {}) {
+  windowDays = 14,
+  showAll = false,
+}: {
+  expandProjectId?: string | null;
+  includeArchived?: boolean;
+  windowDays?: number;
+  showAll?: boolean;
+} = {}) {
   const { projects, loading: projectsLoading } = useProjects({ includeArchived });
-  const { packages, loading: packagesLoading } = usePackages();
+  // Preview pool follows the same window as the cortex viz; true totals come
+  // from usePackageCounts so a card never claims "0 PKG" for an old project.
+  const { packages, loading: packagesLoading } = usePackages(showAll ? { all: true } : { windowDays });
+  const packageCounts = usePackageCounts();
   const { sessions } = useSessions();
   const [triggeredId, setTriggeredId] = useState<string | null>(null);
 
@@ -574,15 +642,19 @@ export default function ProjectCards({
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {ordered.map((project) => (
-        <ProjectCard
-          key={project.id}
-          project={project}
-          packages={packagesByProject.get(project.id) || []}
-          callsignBySession={callsignBySession}
-          forceExpand={triggeredId === project.id}
-        />
-      ))}
+      {ordered.map((project) => {
+        const windowed = packagesByProject.get(project.id) || [];
+        return (
+          <ProjectCard
+            key={project.id}
+            project={project}
+            packages={windowed}
+            totalCount={packageCounts.get(project.id) ?? windowed.length}
+            callsignBySession={callsignBySession}
+            forceExpand={triggeredId === project.id}
+          />
+        );
+      })}
     </div>
   );
 }

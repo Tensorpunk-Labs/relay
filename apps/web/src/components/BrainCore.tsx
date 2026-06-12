@@ -5,6 +5,7 @@ import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { usePackages, useProjects } from '@/lib/hooks';
+import { pulseVertex, pulseFragment } from '@/lib/pulseShader';
 import GradientRings from './GradientRings';
 
 // Cluster colour palette — all cool hues so the network reads as a
@@ -347,37 +348,6 @@ function BridgeEdges({ nodes, time, hoveredProject }: { nodes: NodeData[]; time:
 const PARTICLES_PER_EDGE = 4;
 const MAX_PARTICLES = 600;
 
-const pulseVertex = `
-  uniform float uTime;
-  attribute float aSize;
-  attribute float aAlpha;
-  attribute vec3 aColor;
-  varying float vAlpha;
-  varying vec3 vColor;
-
-  void main() {
-    vec4 mv = modelViewMatrix * vec4(position, 1.0);
-    gl_PointSize = aSize * (180.0 / -mv.z);
-    gl_Position = projectionMatrix * mv;
-    vAlpha = aAlpha;
-    vColor = aColor;
-  }
-`;
-
-const pulseFragment = `
-  varying float vAlpha;
-  varying vec3 vColor;
-
-  void main() {
-    vec2 d = gl_PointCoord - vec2(0.5);
-    float r = length(d);
-    if (r > 0.5) discard;
-    float glow = 1.0 - smoothstep(0.0, 0.5, r);
-    glow = pow(glow, 2.0);
-    gl_FragColor = vec4(vColor, glow * vAlpha);
-  }
-`;
-
 function WaveformPulses({
   nodes,
   time,
@@ -538,7 +508,7 @@ function WaveformPulses({
  * BackgroundMist — slow drifting white-cyan haze particles behind the
  * network, ported from the run-048 waveform mist droplets.
  */
-function BackgroundMist({ count = 220, time }: { count?: number; time: React.RefObject<{ value: number }> }) {
+export function BackgroundMist({ count = 220, time }: { count?: number; time: React.RefObject<{ value: number }> }) {
   const pointsRef = useRef<THREE.Points>(null);
 
   const [positions, sizes, alphas, colors, phases] = useMemo(() => {
@@ -593,7 +563,7 @@ function BackgroundMist({ count = 220, time }: { count?: number; time: React.Ref
   );
 }
 
-function BrainMesh({ hoveredProject, setHoveredProject, onClickProject, windowDays, includeArchived }: { hoveredProject: string | null; setHoveredProject: (id: string | null) => void; onClickProject?: (id: string) => void; windowDays: number; includeArchived: boolean }) {
+function BrainMesh({ hoveredProject, setHoveredProject, onClickProject, windowDays, includeArchived, showAll }: { hoveredProject: string | null; setHoveredProject: (id: string | null) => void; onClickProject?: (id: string) => void; windowDays: number; includeArchived: boolean; showAll: boolean }) {
   const time = useRef({ value: 0 });
   const groupRef = useRef<THREE.Group>(null);
   // Always fetch the full project list (archived + active) so names resolve
@@ -602,7 +572,10 @@ function BrainMesh({ hoveredProject, setHoveredProject, onClickProject, windowDa
   // clusters in the cortex or drop them entirely — matches the "Active
   // Projects" / "All Projects" toggle in page.tsx.
   const { projects } = useProjects({ includeArchived: true });
-  const { packages } = usePackages();
+  // The orient window drives the actual fetch — moving the slider re-windows
+  // the cortex. ALL pulls the entire history so every project ever deposited
+  // to gets a cluster.
+  const { packages } = usePackages(showAll ? { all: true } : { windowDays });
 
   const clusterInfo = useMemo(() => {
     const projectsById = new Map(projects.map((p) => [p.id, p]));
@@ -734,6 +707,7 @@ export default function BrainCore({
   windowDays = 14,
   onWindowChange,
   includeArchived = false,
+  showAll = false,
   cameraZ = 3,
   fov = 50,
   autoRotate = false,
@@ -742,6 +716,7 @@ export default function BrainCore({
   windowDays?: number;
   onWindowChange?: (days: number) => void;
   includeArchived?: boolean;
+  showAll?: boolean;
   cameraZ?: number;
   fov?: number;
   autoRotate?: boolean;
@@ -751,7 +726,7 @@ export default function BrainCore({
   return (
     <div className="w-full h-full overflow-hidden relative">
       <Canvas camera={{ position: [0, 0.15, cameraZ], fov }} gl={{ alpha: true }}>
-        <BrainMesh hoveredProject={hoveredProject} setHoveredProject={setHoveredProject} onClickProject={onClickProject} windowDays={windowDays} includeArchived={includeArchived} />
+        <BrainMesh hoveredProject={hoveredProject} setHoveredProject={setHoveredProject} onClickProject={onClickProject} windowDays={windowDays} includeArchived={includeArchived} showAll={showAll} />
         <OrbitControls
           enableZoom={true}
           enablePan={true}
