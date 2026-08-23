@@ -49,10 +49,14 @@ export function depositCommand(): Command {
         }
 
         if (opts.auto) {
+          // Stop hook passes {session_id, transcript_path, cwd} on stdin —
+          // use it so this deposit is stamped with ITS OWN shell (pkg_7a00e2b8).
+          const hookSessionId = await readHookSessionId();
           const pkg = await client.autoDeposit({
             parentId: opts.parent,
             status: opts.status,
             reviewType: opts.review,
+            sessionId: hookSessionId,
           });
 
           if (!opts.quiet) {
@@ -107,4 +111,21 @@ export function depositCommand(): Command {
         process.exit(1);
       }
     });
+}
+
+/** Best-effort: parse a Claude Code hook payload from stdin and return session_id. */
+function readHookSessionId(): Promise<string | null> {
+  return new Promise((resolve) => {
+    if (process.stdin.isTTY) return resolve(null);
+    let data = '';
+    const done = () => {
+      try { resolve((JSON.parse(data || '{}') as { session_id?: string }).session_id || null); }
+      catch { resolve(null); }
+    };
+    process.stdin.setEncoding('utf8');
+    process.stdin.on('data', (c) => { data += c; });
+    process.stdin.on('end', done);
+    process.stdin.on('error', () => resolve(null));
+    setTimeout(done, 1500); // never block the stop hook
+  });
 }

@@ -281,6 +281,7 @@ export class RelayClient {
     topic: string | null;
     artifactType: string | null;
     transcriptBlob?: TranscriptBlobRef | null;
+    sessionId?: string | null;
   }): Omit<PackageRow, 'created_at'> {
     const m = args.manifest;
     // Forward-compatible insert: only set context_snapshot when present.
@@ -337,7 +338,7 @@ export class RelayClient {
     // a current session is known. Gated by the `continuity` flag so deposits
     // keep inserting against a pre-015 Supabase schema until the migration lands
     // (an unknown column fails the whole insert — see PGRST204).
-    const sref = this.continuityEnabled() ? readCurrentSession() : null;
+    const sref = this.continuityEnabled() ? readCurrentSession({ sessionId: args.sessionId }) : null;
     if (sref?.session_id) {
       row.claude_session_id = sref.session_id;
       row.cwd = sref.cwd;
@@ -388,14 +389,14 @@ export class RelayClient {
     return false;
   }
 
-  private async captureTranscript(): Promise<TranscriptBlobRef | null> {
+  private async captureTranscript(packageId: string, sessionId?: string | null): Promise<TranscriptBlobRef | null> {
     if (!this.continuityEnabled()) {
       console.error(
         '[Relay] --with-transcript: continuity is disabled. Apply migration 015, then `relay config set continuity true`.',
       );
       return null;
     }
-    const sref = readCurrentSession();
+    const sref = readCurrentSession({ sessionId });
     if (!sref?.session_id || !sref.transcript_path) {
       console.error('[Relay] --with-transcript: no current Claude session/transcript path; skipping.');
       return null;
@@ -421,7 +422,7 @@ export class RelayClient {
       },
     };
     try {
-      const ref = await packAndUpload(sref.session_id, sref.transcript_path, key, port);
+      const ref = await packAndUpload(sref.session_id, sref.transcript_path, key, port, packageId);
       console.error(`[Relay] transcript captured (encrypted) -> ${ref.storagePath} (${ref.originalBytes} bytes)`);
       return ref;
     } catch (e) {
@@ -507,7 +508,7 @@ export class RelayClient {
     // Tier 2: transcript capture — explicit flag or config mode (manual/always).
     // Best-effort; never blocks the deposit.
     const transcriptBlob = this.wantsTranscript(opts.withTranscript, false)
-      ? await this.captureTranscript()
+      ? await this.captureTranscript(manifest.package_id, opts.sessionId)
       : null;
 
     await this.storage.insertPackage({
@@ -519,6 +520,7 @@ export class RelayClient {
         topic,
         artifactType,
         transcriptBlob,
+        sessionId: opts.sessionId,
       }),
     });
 
@@ -661,7 +663,7 @@ export class RelayClient {
     // Auto-deposits capture the transcript only in 'always' mode (isAuto=true),
     // so the every-exit stop hook stays fast under the default/'manual' modes.
     const transcriptBlob = this.wantsTranscript(undefined, true)
-      ? await this.captureTranscript()
+      ? await this.captureTranscript(manifest.package_id, opts.sessionId)
       : null;
 
     await this.storage.insertPackage({
@@ -673,6 +675,7 @@ export class RelayClient {
         topic,
         artifactType,
         transcriptBlob,
+        sessionId: opts.sessionId,
       }),
     });
 

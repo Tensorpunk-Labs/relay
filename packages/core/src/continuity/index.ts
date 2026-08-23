@@ -19,6 +19,9 @@ export {
   encodeProjectPath,
   claudeProjectsDir,
   readCurrentSession,
+  resolveSessionRef,
+  stampSession,
+  sessionsDir,
   thisHost,
 } from './session-ref.js';
-export type { SessionRef } from './session-ref.js';
+export type { SessionRef, ResolveSessionOptions } from './session-ref.js';

@@ -12,7 +12,7 @@ export interface StoragePort {
 }
 
 export interface TranscriptBlobRef {
-  storagePath: string;     // e.g. transcripts/<session_id>.bin
+  storagePath: string;     // transcripts/<session_id>/<package_id>.bin (immutable per package)
   iv: string;
   authTag: string;
   keyId: string;
@@ -26,11 +26,16 @@ export async function packAndUpload(
   jsonlPath: string,
   key: Buffer,
   storage: StoragePort,
+  packageId?: string,
 ): Promise<TranscriptBlobRef> {
   const original = readFileSync(jsonlPath);
   const gz = gzipSync(original);
   const blob: EncryptedBlob = encrypt(gz, key);
-  const storagePath = `transcripts/${sessionId}.bin`;
+  // pkg_7a00e2b8: one blob per package. The old transcripts/<session>.bin key was
+  // upserted on every capture, orphaning every earlier package's iv/authTag.
+  const storagePath = packageId
+    ? `transcripts/${sessionId}/${packageId}.bin`
+    : `transcripts/${sessionId}.bin`;
   await storage.upload(storagePath, blob.ciphertext);
   return {
     storagePath,

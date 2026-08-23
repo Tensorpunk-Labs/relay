@@ -125,3 +125,72 @@ test('downloadAndUnpack rejects sha mismatch', async () => {
     /integrity/,
   );
 });
+
+// ---------------------------------------------------------------------------
+// pkg_7a00e2b8: continuity broken for concurrent sessions.
+// ---------------------------------------------------------------------------
+import { resolveSessionRef, stampSession } from '../dist/continuity/index.js';
+import { utimesSync } from 'node:fs';
+
+function fakeHome() {
+  const home = mkdtempSync(join(tmpdir(), 'relay-home-'));
+  const projects = join(home, '.claude', 'projects');
+  mkdirSync(projects, { recursive: true });
+  return { home, projects };
+}
+function stamp(home, projects, id, cwd, mtimeSec) {
+  const enc = encodeProjectPath(cwd);
+  mkdirSync(join(projects, enc), { recursive: true });
+  const tp = join(projects, enc, id + '.jsonl');
+  writeFileSync(tp, '{"x":1}\n');
+  utimesSync(tp, mtimeSec, mtimeSec);
+  return stampSession({ session_id: id, transcript_path: tp, cwd, project_path_encoded: enc, host: 'h' }, { home });
+}
+
+// BUG 1: N concurrent shells -> every deposit must find ITS OWN stamp.
+test('resolveSessionRef: explicit session id wins over every other stamp', () => {
+  const { home, projects } = fakeHome();
+  stamp(home, projects, 'sess-A', 'C:\a', 1000);
+  stamp(home, projects, 'sess-B', 'C:\b', 2000);
+  assert.equal(resolveSessionRef({ sessionId: 'sess-A', home, cwd: 'C:\b' })?.session_id, 'sess-A');
+});
+
+test('resolveSessionRef: without an id, matches the calling cwd, not the last-stamped shell', () => {
+  const { home, projects } = fakeHome();
+  stamp(home, projects, 'sess-A', 'C:\a', 1000);
+  stamp(home, projects, 'sess-B', 'C:\b', 2000); // stamped last
+  assert.equal(resolveSessionRef({ home, cwd: 'C:\a' })?.session_id, 'sess-A');
+});
+
+test('resolveSessionRef: two shells in the same cwd -> the most recently active transcript', () => {
+  const { home, projects } = fakeHome();
+  stamp(home, projects, 'sess-old', 'C:\same', 1000);
+  stamp(home, projects, 'sess-new', 'C:\same', 5000);
+  assert.equal(resolveSessionRef({ home, cwd: 'C:\same' })?.session_id, 'sess-new');
+  utimesSync(join(projects, encodeProjectPath('C:\same'), 'sess-old.jsonl'), 9000, 9000);
+  assert.equal(resolveSessionRef({ home, cwd: 'C:\same' })?.session_id, 'sess-old');
+});
+
+test('resolveSessionRef: falls back to legacy current-session.json when nothing else matches', () => {
+  const { home } = fakeHome();
+  mkdirSync(join(home, '.relay'), { recursive: true });
+  writeFileSync(join(home, '.relay', 'current-session.json'), JSON.stringify({ session_id: 'legacy', cwd: 'C:\z' }));
+  assert.equal(resolveSessionRef({ home, cwd: 'C:\nomatch' })?.session_id, 'legacy');
+});
+
+// BUG 2: blob key must be immutable per package so earlier refs never dangle.
+test('packAndUpload keys the blob per package; two captures of one session coexist', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'relay-tx2-'));
+  const jsonl = join(dir, 's.jsonl');
+  const key = randomBytes(32);
+  const mem = new Map();
+  const storage = { upload: async (p, b) => { mem.set(p, Buffer.from(b)); }, download: async (p) => mem.get(p) };
+  writeFileSync(jsonl, 'first\n');
+  const r1 = await packAndUpload('sess-1', jsonl, key, storage, 'pkg_one');
+  writeFileSync(jsonl, 'first\nsecond\n');
+  const r2 = await packAndUpload('sess-1', jsonl, key, storage, 'pkg_two');
+  assert.notEqual(r1.storagePath, r2.storagePath);
+  assert.match(r1.storagePath, /^transcripts\/sess-1\/pkg_one\.bin$/);
+  assert.equal((await downloadAndUnpack(r1, key, storage)).toString(), 'first\n');
+  assert.equal((await downloadAndUnpack(r2, key, storage)).toString(), 'first\nsecond\n');
+});

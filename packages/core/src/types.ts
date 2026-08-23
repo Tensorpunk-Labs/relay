@@ -227,12 +227,26 @@ export interface DepositOptions {
    * later — on this machine or another. Off by default; transcript_opt_in.
    */
   withTranscript?: boolean;
+  /**
+   * Claude Code session id of the CALLING shell (pkg_7a00e2b8). Stop hooks
+   * pass it from the hook stdin payload; otherwise resolved from
+   * RELAY_SESSION_ID / CLAUDE_SESSION_ID env or a cwd match against the
+   * per-session stamps in ~/.relay/sessions/.
+   */
+  sessionId?: string | null;
 }
 
 export interface AutoDepositOptions {
   parentId?: string;
   status?: PackageStatus;
   reviewType?: ReviewType;
+  /**
+   * Claude Code session id of the CALLING shell (pkg_7a00e2b8). Stop hooks
+   * pass it from the hook stdin payload; otherwise resolved from
+   * RELAY_SESSION_ID / CLAUDE_SESSION_ID env or a cwd match against the
+   * per-session stamps in ~/.relay/sessions/.
+   */
+  sessionId?: string | null;
 }
 
 export interface SearchResult {

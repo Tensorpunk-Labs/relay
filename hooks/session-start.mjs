@@ -30,10 +30,18 @@ process.stdin.on('end', () => {
     project_path_encoded: encoded,
     host: hostname(),
   };
-  const out = join(homedir(), '.relay', 'current-session.json');
+  // pkg_7a00e2b8: per-session stamp so concurrent shells never clobber each other.
+  // The legacy singleton is still written for older readers.
+  const json = JSON.stringify(ref, null, 2);
   try {
+    if (ref.session_id) {
+      const per = join(homedir(), '.relay', 'sessions', ref.session_id + '.json');
+      mkdirSync(dirname(per), { recursive: true });
+      writeFileSync(per, json);
+    }
+    const out = join(homedir(), '.relay', 'current-session.json');
     mkdirSync(dirname(out), { recursive: true });
-    writeFileSync(out, JSON.stringify(ref, null, 2));
+    writeFileSync(out, json);
   } catch { /* never block session start */ }
   process.exit(0);
 });
