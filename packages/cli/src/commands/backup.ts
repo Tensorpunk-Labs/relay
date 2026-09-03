@@ -54,6 +54,27 @@ export function backupCommand(): Command {
           console.log(
             `Totals: ${result.perProject.length} projects, ${totalPackages} packages, ${totalFacts} facts, ${totalSessions} sessions, ${totalBlobs}/${totalBlobsAttempted} blobs.`,
           );
+          // A partial export must never look like a clean one. Report the
+          // failed projects and exit non-zero so unattended schedulers and
+          // CI treat it as the failure it is.
+          if (result.failures.length > 0) {
+            const total = result.failures.length + result.perProject.length;
+            console.error("");
+            console.error(
+              "✗ PARTIAL BACKUP — " + result.failures.length + " of " + total +
+                " projects failed:",
+            );
+            for (const f of result.failures) {
+              console.error(
+                "    - " + (f.projectName ?? f.projectId) + " (" + f.projectId + "): " + f.reason,
+              );
+            }
+            console.error("");
+            console.error("manifest.json is marked \"partial\": true and lists only the");
+            console.error("projects actually written. Re-run to retry the failures.");
+            process.exit(1);
+          }
+
           console.log(`\u2713 Backup complete.`);
           return;
         }

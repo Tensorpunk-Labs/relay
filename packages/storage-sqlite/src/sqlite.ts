@@ -204,6 +204,7 @@ export class SqliteStorage implements RelayStorage {
     projectId: string;
     limit?: number;
     sinceIso?: string;
+    offset?: number;
   }): Promise<PackageRow[]> {
     const parts: string[] = ['SELECT * FROM context_packages WHERE project_id = ?'];
     const params: SqliteParam[] = [q.projectId];
@@ -211,10 +212,16 @@ export class SqliteStorage implements RelayStorage {
       parts.push('AND created_at >= ?');
       params.push(q.sinceIso);
     }
-    parts.push('ORDER BY created_at DESC');
+    // id tie-break keeps the sort total so pagination cannot skip or
+    // duplicate rows when several packages share a created_at.
+    parts.push('ORDER BY created_at DESC, id DESC');
     if (q.limit) {
       parts.push('LIMIT ?');
       params.push(q.limit);
+      if (q.offset !== undefined) {
+        parts.push('OFFSET ?');
+        params.push(q.offset);
+      }
     }
     const rows = this.db.prepare(parts.join(' ')).all(...params) as UnknownRow[];
     return rows.map((r) => this.rowToPackage(r));

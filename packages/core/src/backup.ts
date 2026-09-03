@@ -61,6 +61,13 @@ export interface BlobError {
   reason: string;
 }
 
+/** A project that could not be exported during an --all-projects run. */
+export interface ProjectFailure {
+  projectId: string;
+  projectName?: string;
+  reason: string;
+}
+
 export interface BackupManifest {
   tool_version: string;
   protocol_version: string;
@@ -76,11 +83,20 @@ export interface BackupManifest {
     blobs_attempted: number;
   };
   blob_errors: BlobError[];
+  /**
+   * Projects that failed during an --all-projects run. Absent or empty on a
+   * clean export. A restore tool should treat a non-empty list as a partial
+   * snapshot and refuse to present it as a complete one.
+   */
+  failed_projects?: ProjectFailure[];
+  /** True when at least one project failed — the backup is incomplete. */
+  partial?: boolean;
 }
 
-interface BackupAllResult {
+export interface BackupAllResult {
   outDir: string;
   perProject: BackupResult[];
+  failures: ProjectFailure[];
 }
 
 export interface BackupServiceOptions {
@@ -98,7 +114,9 @@ export type BackupProgressEvent =
   | { kind: 'facts_done'; projectId: string; count: number }
   | { kind: 'sessions_done'; projectId: string; count: number }
   | { kind: 'blob_ok'; projectId: string; packageId: string }
-  | { kind: 'blob_miss'; projectId: string; packageId: string; reason: string };
+  | { kind: 'blob_miss'; projectId: string; packageId: string; reason: string }
+  | { kind: 'retry'; projectId: string; attempt: number; reason: string }
+  | { kind: 'project_failed'; projectId: string; reason: string };
 
 export class BackupService {
   private storage: ReadOnlyRelayStorage;
@@ -138,42 +156,54 @@ export class BackupService {
     const packagesPath = path.join(outDir, 'packages.ndjson');
     const packagesStream = fs.createWriteStream(packagesPath, { encoding: 'utf-8' });
     try {
-      await streamPackages(this.storage, projectId, this.pageSize, async (batch) => {
-        for (const row of batch) {
-          // Fetch blob if available + rewrite storage_path to be relative.
-          let rewrittenStoragePath = row.storage_path;
-          if (row.storage_path && typeof this.storage.getBlob === 'function') {
-            blobTotal += 1;
-            try {
-              const blob = await this.storage.getBlob(row.storage_path);
-              if (blob && blob.byteLength > 0) {
-                const relPath = `blobs/${projectId}/${row.id}.relay.zip`;
-                const absPath = path.join(outDir, relPath);
-                await fs.promises.writeFile(absPath, Buffer.from(blob));
-                rewrittenStoragePath = relPath;
-                blobCount += 1;
-                this.onProgress?.({ kind: 'blob_ok', projectId, packageId: row.id });
-              } else {
-                const reason = 'blob not found in storage';
+      await streamPackages(
+        this.storage,
+        projectId,
+        this.pageSize,
+        async (batch) => {
+          for (const row of batch) {
+            // Fetch blob if available + rewrite storage_path to be relative.
+            let rewrittenStoragePath = row.storage_path;
+            if (row.storage_path && typeof this.storage.getBlob === 'function') {
+              blobTotal += 1;
+              try {
+                const blob = await withRetry(
+                  () => this.storage.getBlob!(row.storage_path!),
+                  'Failed to fetch blob ' + row.storage_path,
+                  (attempt, e) =>
+                    this.onProgress?.({ kind: 'retry', projectId, attempt, reason: e.message }),
+                );
+                if (blob && blob.byteLength > 0) {
+                  const relPath = `blobs/${projectId}/${row.id}.relay.zip`;
+                  const absPath = path.join(outDir, relPath);
+                  await fs.promises.writeFile(absPath, Buffer.from(blob));
+                  rewrittenStoragePath = relPath;
+                  blobCount += 1;
+                  this.onProgress?.({ kind: 'blob_ok', projectId, packageId: row.id });
+                } else {
+                  const reason = 'blob not found in storage';
+                  blobErrors.push({ packageId: row.id, storagePath: row.storage_path, reason });
+                  this.onProgress?.({ kind: 'blob_miss', projectId, packageId: row.id, reason });
+                }
+              } catch (err) {
+                const reason = (err as Error).message || 'unknown error';
                 blobErrors.push({ packageId: row.id, storagePath: row.storage_path, reason });
                 this.onProgress?.({ kind: 'blob_miss', projectId, packageId: row.id, reason });
               }
-            } catch (err) {
-              const reason = (err as Error).message || 'unknown error';
-              blobErrors.push({ packageId: row.id, storagePath: row.storage_path, reason });
-              this.onProgress?.({ kind: 'blob_miss', projectId, packageId: row.id, reason });
             }
-          }
 
-          const rewritten: PackageRow = {
-            ...row,
-            storage_path: rewrittenStoragePath,
-          };
-          packagesStream.write(JSON.stringify(rewritten) + '\n');
-          packageCount += 1;
-        }
-        this.onProgress?.({ kind: 'packages_batch', projectId, cumulative: packageCount });
-      });
+            const rewritten: PackageRow = {
+              ...row,
+              storage_path: rewrittenStoragePath,
+            };
+            packagesStream.write(JSON.stringify(rewritten) + '\n');
+            packageCount += 1;
+          }
+          this.onProgress?.({ kind: 'packages_batch', projectId, cumulative: packageCount });
+        },
+        (attempt, err) =>
+          this.onProgress?.({ kind: 'retry', projectId, attempt, reason: err.message }),
+      );
     } finally {
       await endStream(packagesStream);
     }
@@ -247,19 +277,30 @@ export class BackupService {
     let totalBlobs = 0;
     let totalBlobsAttempted = 0;
 
+    // One project must never take down the run. A single oversized or
+    // transiently-unavailable project used to abort every project after it,
+    // leaving a directory that looked plausible but was silently truncated.
+    const failures: ProjectFailure[] = [];
+
     for (const project of projects) {
       const projectDir = path.join(outDir, project.id);
-      const result = await this.backupProject({
-        projectId: project.id,
-        outDir: projectDir,
-      });
-      perProject.push(result);
-      totalPackages += result.packageCount;
-      totalFacts += result.factCount;
-      totalSessions += result.sessionCount;
-      totalBlobs += result.blobCount;
-      totalBlobsAttempted += result.blobTotal;
-      aggregateBlobErrors.push(...result.blobErrors);
+      try {
+        const result = await this.backupProject({
+          projectId: project.id,
+          outDir: projectDir,
+        });
+        perProject.push(result);
+        totalPackages += result.packageCount;
+        totalFacts += result.factCount;
+        totalSessions += result.sessionCount;
+        totalBlobs += result.blobCount;
+        totalBlobsAttempted += result.blobTotal;
+        aggregateBlobErrors.push(...result.blobErrors);
+      } catch (err) {
+        const reason = (err as Error).message || 'unknown error';
+        failures.push({ projectId: project.id, projectName: project.name, reason });
+        this.onProgress?.({ kind: 'project_failed', projectId: project.id, reason });
+      }
     }
 
     const topManifest: BackupManifest = {
@@ -267,9 +308,11 @@ export class BackupService {
       protocol_version: RELAY_PROTOCOL_VERSION,
       backup_format_version: BACKUP_FORMAT_VERSION,
       backup_generated_at: new Date().toISOString(),
-      project_ids: projects.map((p) => p.id),
+      // Only projects actually written are listed, so a partial snapshot
+      // never claims coverage it does not have.
+      project_ids: perProject.map((r) => r.projectId),
       counts: {
-        projects: projects.length,
+        projects: perProject.length,
         packages: totalPackages,
         facts: totalFacts,
         sessions: totalSessions,
@@ -277,6 +320,8 @@ export class BackupService {
         blobs_attempted: totalBlobsAttempted,
       },
       blob_errors: aggregateBlobErrors,
+      failed_projects: failures,
+      partial: failures.length > 0,
     };
     await fs.promises.writeFile(
       path.join(outDir, 'manifest.json'),
@@ -284,39 +329,110 @@ export class BackupService {
       'utf-8',
     );
 
-    return { outDir, perProject };
+    return { outDir, perProject, failures };
   }
 }
 
-/** Paginate listPackages with a monotonic `before` cursor derived from created_at. */
+/**
+ * Transient-failure classifier. Postgres statement timeouts, upstream 5xx
+ * (including Cloudflare 520-527 when the database is briefly unreachable),
+ * and socket-level resets are worth retrying. Everything else — auth
+ * failures, missing projects, malformed queries — is fatal and should
+ * surface immediately rather than burn three attempts.
+ */
+function isTransientError(err: unknown): boolean {
+  const msg = ((err as Error)?.message ?? String(err)).toLowerCase();
+  return (
+    msg.includes('statement timeout') ||
+    msg.includes('canceling statement') ||
+    msg.includes('timeout') ||
+    msg.includes('fetch failed') ||
+    msg.includes('econnreset') ||
+    msg.includes('etimedout') ||
+    msg.includes('econnrefused') ||
+    msg.includes('socket hang up') ||
+    msg.includes('network') ||
+    /5[0-9]{2}/.test(msg)
+  );
+}
+
+const RETRY_ATTEMPTS = 4;
+const RETRY_BASE_MS = 500;
+
+/**
+ * Retry `fn` with exponential backoff on transient failures. A multi-minute
+ * export will eventually straddle a backend hiccup; without this, one blip
+ * discards the whole run.
+ */
+async function withRetry<T>(
+  fn: () => Promise<T>,
+  label: string,
+  onRetry?: (attempt: number, err: Error) => void,
+): Promise<T> {
+  let lastErr: unknown;
+  for (let attempt = 1; attempt <= RETRY_ATTEMPTS; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastErr = err;
+      if (attempt === RETRY_ATTEMPTS || !isTransientError(err)) break;
+      onRetry?.(attempt, err as Error);
+      await new Promise((r) => setTimeout(r, RETRY_BASE_MS * 2 ** (attempt - 1)));
+    }
+  }
+  const detail = (lastErr as Error)?.message ?? String(lastErr);
+  throw new Error(label + ': ' + detail);
+}
+
+/**
+ * Stream a project's packages in `pageSize` chunks using a real LIMIT/OFFSET
+ * cursor.
+ *
+ * The previous implementation issued a single `limit: 100_000` query and
+ * sliced client-side. `select('*')` pulls the full `context_md` and
+ * `context_snapshot` payloads, so once a project accumulated enough rows
+ * that one statement exceeded the Postgres timeout, the export failed
+ * outright — and because `backupAllProjects` had no isolation, a single
+ * oversized project aborted every remaining one.
+ *
+ * Safety properties:
+ *  - `seen` dedupes across pages, so a row shifting between pages (from a
+ *    concurrent insert) can never be written twice.
+ *  - If a page yields no unseen ids the cursor is not advancing — an adapter
+ *    ignoring `offset` would otherwise loop forever — so we stop.
+ */
 async function streamPackages(
   storage: ReadOnlyRelayStorage,
   projectId: string,
   pageSize: number,
   onBatch: (batch: PackageRow[]) => Promise<void>,
+  onRetry?: (attempt: number, err: Error) => void,
 ): Promise<void> {
   const seen = new Set<string>();
-  // We don't know the exact API for "before this timestamp", only
-  // `sinceIso` lower-bound. Strategy: pull the newest page; remember the
-  // ids we've seen; then request progressively older windows by moving
-  // the sinceIso upper bound down on each iteration using the oldest
-  // unseen row we found. If the backend only supports "since", we still
-  // terminate because we cap iterations at (total/pageSize + 1).
-  //
-  // Simpler fallback (and the common case) — ask for ALL packages at once
-  // with a very large limit. Then split into batches client-side. This
-  // avoids cursor-correctness landmines while v0.1 package counts are
-  // small (hundreds per project, not millions).
-  const all = await storage.listPackages({ projectId, limit: 100_000 });
-  for (let i = 0; i < all.length; i += pageSize) {
-    const slice = all.slice(i, i + pageSize).filter((r) => {
+  let offset = 0;
+
+  for (;;) {
+    const page = await withRetry(
+      () => storage.listPackages({ projectId, limit: pageSize, offset }),
+      'Failed to list packages for ' + projectId + ' at offset ' + offset,
+      onRetry,
+    );
+    if (page.length === 0) break;
+
+    const fresh = page.filter((r) => {
       if (seen.has(r.id)) return false;
       seen.add(r.id);
       return true;
     });
-    if (slice.length > 0) {
-      await onBatch(slice);
-    }
+
+    // No new ids means the cursor stalled (adapter ignoring `offset`).
+    if (fresh.length === 0) break;
+
+    await onBatch(fresh);
+
+    // A short page is the last page.
+    if (page.length < pageSize) break;
+    offset += page.length;
   }
 }
 

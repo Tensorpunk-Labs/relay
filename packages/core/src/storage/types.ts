@@ -249,6 +249,13 @@ export interface ReadOnlyRelayStorage {
     projectId: string;
     limit?: number;
     sinceIso?: string;
+    /**
+     * Zero-based row offset, paired with `limit` to page through large
+     * projects. Adapters predating this field ignore it and re-serve the
+     * first page; BackupService detects a non-advancing cursor and stops
+     * rather than looping forever.
+     */
+    offset?: number;
   }): Promise<PackageRow[]>;
   /**
    * Look up the most recent package carrying a given Claude Code resume id

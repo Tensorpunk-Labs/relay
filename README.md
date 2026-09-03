@@ -235,6 +235,37 @@ See [`apps/web/.env.example`](apps/web/.env.example) for the canonical template.
 
 Relay ships with a SQLite adapter — local, zero-setup, per-install DB file. The adapter interface is in `packages/core/src/storage/`. Additional adapters (Postgres, in-memory for tests, managed hosted) are possible without changing the protocol; reach out if you need one.
 
+### Backup & Restore
+
+`relay backup` writes a portable snapshot — NDJSON rows plus each package's
+`.relay.zip` blob — that `relay restore` can replay into any storage adapter.
+The export is strictly read-only: every call is a `SELECT` or a blob download.
+
+```bash
+relay backup --project <id> --out ./backup-dir   # one project
+relay backup --all-projects --out ./backup-dir   # every non-archived project
+relay restore --from ./backup-dir                # replay into configured storage
+```
+
+Built for unattended use:
+
+- **Paginated reads** — packages stream in `LIMIT`/`OFFSET` pages ordered by
+  `(created_at, id)`. Package rows carry full `context_md` payloads, so an
+  unpaginated read of a large project would exceed the Postgres statement
+  timeout. Pagination keeps each statement small as the corpus grows.
+- **Transient failures retry** — statement timeouts, upstream 5xx, and socket
+  resets retry with exponential backoff. Bad auth or a missing project fails
+  fast instead of burning attempts.
+- **Failures are isolated and declared** — in `--all-projects`, one failing
+  project does not abort the rest. The manifest records `partial: true` and
+  `failed_projects[]`, `project_ids` lists only what was written, and the CLI
+  exits non-zero so a scheduler cannot log a green check over an incomplete
+  snapshot.
+
+`manifest.json` is written last and is the completion contract — `relay restore`
+refuses any directory without one, so an interrupted run can never be mistaken
+for a usable backup. Details in [`docs/BACKUP.md`](docs/BACKUP.md).
+
 ## Read the Protocol Spec
 
 The Agentic Protocol is the ground truth. Read it before proposing protocol changes:

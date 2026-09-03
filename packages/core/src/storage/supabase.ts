@@ -207,14 +207,24 @@ export class SupabaseStorage implements RelayStorage {
     projectId: string;
     limit?: number;
     sinceIso?: string;
+    offset?: number;
   }): Promise<PackageRow[]> {
     let query = this.supabase
       .from('context_packages')
       .select('*')
       .eq('project_id', q.projectId)
-      .order('created_at', { ascending: false });
+      // Tie-break on id so the sort is total. created_at alone is not
+      // unique, and an unstable order across pages can duplicate or skip
+      // rows during a paginated backup.
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: false });
     if (q.sinceIso) query = query.gte('created_at', q.sinceIso);
-    if (q.limit) query = query.limit(q.limit);
+    if (q.offset !== undefined && q.limit) {
+      // PostgREST range is inclusive on both ends.
+      query = query.range(q.offset, q.offset + q.limit - 1);
+    } else if (q.limit) {
+      query = query.limit(q.limit);
+    }
 
     const { data, error } = await query;
     if (error) throw new Error(`Failed to list packages: ${error.message}`);
