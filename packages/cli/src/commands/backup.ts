@@ -28,6 +28,20 @@ export function backupCommand(): Command {
         const onProgress = (event: BackupProgressEvent) => {
           if (event.kind === 'packages_batch') {
             progress[event.projectId] = { packages: event.cumulative };
+          } else if (event.kind === 'project_done') {
+            // Emit as each project lands so a long --all-projects run is
+            // observably alive rather than silent until the final summary.
+            console.log(
+              '  ✓ ' + event.projectId + ' (' + event.packages + ' packages, ' +
+                event.blobs + ' blobs)',
+            );
+          } else if (event.kind === 'retry') {
+            console.log(
+              '  ~ ' + event.projectId + ': transient failure (attempt ' +
+                event.attempt + '), retrying — ' + event.reason,
+            );
+          } else if (event.kind === 'project_failed') {
+            console.error('  ! ' + event.projectId + ': FAILED — ' + event.reason);
           }
         };
 

@@ -31,16 +31,12 @@ export const BACKUP_FORMAT_VERSION = '1';
 export const RELAY_PROTOCOL_VERSION = '0.1';
 
 /**
- * Paginate `listPackages` in batches of `pageSize`, ordered by `created_at`
- * descending. We walk backwards in time using the oldest row's timestamp
- * as the upper bound for the next call, minus 1 ms to avoid re-pulling
- * the same row. This works with any RelayStorage impl that honors the
- * `sinceIso` lower bound — we simply keep requesting the most recent N
- * packages and filter client-side.
+ * Rows per `listPackages` page. Packages are read with a real LIMIT/OFFSET
+ * cursor ordered by `(created_at DESC, id DESC)` — see `streamPackages`.
  *
- * For the v0.1 subset we don't add a "before" bound to the interface;
- * instead each page uses the full `limit` and we stop when we see a page
- * smaller than `pageSize` OR when the oldest id has already been seen.
+ * Keep this modest. `listPackages` selects whole rows, and `context_md` /
+ * `context_snapshot` can each run to hundreds of kilobytes, so page size is
+ * bounded by payload bytes rather than row count.
  */
 const DEFAULT_PAGE_SIZE = 200;
 
@@ -116,6 +112,7 @@ export type BackupProgressEvent =
   | { kind: 'blob_ok'; projectId: string; packageId: string }
   | { kind: 'blob_miss'; projectId: string; packageId: string; reason: string }
   | { kind: 'retry'; projectId: string; attempt: number; reason: string }
+  | { kind: 'project_done'; projectId: string; packages: number; blobs: number }
   | { kind: 'project_failed'; projectId: string; reason: string };
 
 export class BackupService {
@@ -296,6 +293,12 @@ export class BackupService {
         totalBlobs += result.blobCount;
         totalBlobsAttempted += result.blobTotal;
         aggregateBlobErrors.push(...result.blobErrors);
+        this.onProgress?.({
+          kind: 'project_done',
+          projectId: project.id,
+          packages: result.packageCount,
+          blobs: result.blobCount,
+        });
       } catch (err) {
         const reason = (err as Error).message || 'unknown error';
         failures.push({ projectId: project.id, projectName: project.name, reason });
